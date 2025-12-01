@@ -1,105 +1,214 @@
-import 'package:dx_projecet_lg_sea/card_mode.dart';
-import 'package:dx_projecet_lg_sea/sea_loading.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class UiHome extends StatelessWidget {
-  const  UiHome({super.key});
+import '../ui/cardmode/card_mode.dart';
+import '../ui/mypage/my_page.dart';
+import '../services/login.dart';
+
+class UiHome extends StatefulWidget {
+  const UiHome({super.key});
+
+  @override
+  State<UiHome> createState() => _UiHomeState();
+}
+
+class _UiHomeState extends State<UiHome> {
+  bool isLoggedIn = false;
+  String userName = 'Guest';
+  String membership = '0';
+  String qReward = '0';
+
+  int _currentIndex = 0; // 0: 홈, 1: 카드모드, 2: 마이페이지
+
+  // 로그인 화면으로 이동해서 결과 받기
+  Future<void> _goToLogin() async {
+    final result = await Navigator.push<LoginResult>(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+
+    if (result != null) {
+      setState(() {
+        isLoggedIn = true;
+        userName = result.userName;
+        membership = result.membership;
+        qReward = result.qReward;
+      });
+    }
+  }
+
+  // 로그아웃
+  void _handleLogout() {
+    setState(() {
+      isLoggedIn = false;
+      userName = 'Guest';
+      membership = '0';
+      qReward = '0';
+    });
+  }
+
+  // 🔥 LG Regen / 카드모드 진입
+  void _openCardMode() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CardMode(
+          isLoggedIn: isLoggedIn,
+          userName: userName,
+          membership: membership,
+          qReward: qReward,
+          onLogout: _handleLogout, // CardMode 안에서 로그아웃 시 UiHome 상태 갱신
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // 상단 영역
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFBEE0FF),
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(30),
-                ),
+      backgroundColor: const Color(0xFFF3F4F6),
+      body: SafeArea(
+        child: _buildBody(),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (idx) {
+          setState(() => _currentIndex = idx);
+
+          // 카드모드 탭을 눌렀을 때 실제 CardMode 화면으로 이동
+          if (idx == 1) {
+            _openCardMode();
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            label: '홈',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_customize_outlined),
+            label: '카드모드',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: '마이페이지',
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 탭별로 다른 화면 렌더링
+  Widget _buildBody() {
+    if (_currentIndex == 0) {
+      // 🔥 진짜 홈 화면
+      return _buildHomeContent();
+    } else if (_currentIndex == 1) {
+      // 카드모드 탭은 실제 화면은 push 로 띄우고 여기선 안내만
+      return const Center(
+        child: Text('카드모드는 하단 탭을 통해 진입합니다.'),
+      );
+    } else {
+      // 마이페이지 탭
+      return MyPage(
+        isLoggedIn: isLoggedIn,
+        userName: userName,
+        membership: membership,
+        qReward: qReward,
+        onTapLogin: _goToLogin,
+        onTapSignup: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('회원가입 화면은 아직 준비 중입니다.')),
+          );
+        },
+        onTapLogout: _handleLogout,
+      );
+    }
+  }
+
+  /// 🏠 홈 화면 레이아웃 (LG Regen 버튼 + 3D홈뷰 + 하단 이미지)
+  Widget _buildHomeContent() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // 상단 영역
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFFBEE0FF),
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(10),
               ),
-              padding: const EdgeInsets.fromLTRB(20,55,30,30),
-              child: Column(
-                children: [
-                  // 상단 텍스트 + 버튼
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "이지엘의 행복한 홈",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 55, 30, 30),
+            child: Column(
+              children: [
+                // 상단 텍스트 + 버튼
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Aisyah의 행복한 홈",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
+                    ),
 
-                      // === ThinQ Card Mode 버튼 ===
-                      Transform.translate(
-                        // 오른쪽 그대로 두고, y값만 바꿔서 위/아래로 이동
-                        offset: const Offset(0, 15),   // ↓ 12px 내려감 (원하는 값으로 조정)
+                    // === LG Regen 버튼 ===
+                    Transform.translate(
+                      offset: const Offset(0, 15),
                       child: GestureDetector(
-                        onTap: () async {
-                          // 먼저 로딩 화면 보여주기
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SeaLoadingWhite(),
-                            ),
-                          );
-
-                          // 3초 뒤 CardMode 페이지로 이동
-                          await Future.delayed(const Duration(seconds: 3));
-
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CardMode(),
-                            ),
-                          );
-                        },
+                        onTap: _openCardMode, // ✅ 여기서 CardMode 열기
                         child: Container(
                           width: 70,
                           height: 70,
                           decoration: BoxDecoration(
-                            color: Colors.black87,
+                            color: const Color(0xFF00C853),
                             borderRadius: BorderRadius.circular(50),
                           ),
                           child: const Center(
                             child: Text(
-                              "ThinQ\nCard\nMode",
+                              "LG\nRegen",
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 15,
                                 color: Colors.white,
                               ),
                             ),
                           ),
                         ),
                       ),
-                      )],
-                  ),
+                    ),
+                  ],
+                ),
 
-                  const SizedBox(height: 30),
+                const SizedBox(height: 30),
 
-                  // 3D 홈뷰 카드
-                  _ThreeDHomeCard(),
-                ],
-              ),
+                // 3D 홈뷰 카드
+                const _ThreeDHomeCard(),
+              ],
             ),
+          ),
 
-            const SizedBox(height: 20),
+          // 하단 이미지
+          Image.asset(
+            'images/home_section.jpg',
+            width: MediaQuery.of(context).size.width,
+            fit: BoxFit.fitWidth,
+          ),
 
-
-          ],
-        ),
+          const SizedBox(height: 20),
+          // TODO: 다른 카드들 추가
+        ],
       ),
     );
   }
 }
+
+/// 👇 보조 위젯: 3D 홈뷰 카드
 class _ThreeDHomeCard extends StatelessWidget {
+  const _ThreeDHomeCard({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -109,7 +218,6 @@ class _ThreeDHomeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
@@ -160,4 +268,3 @@ class _ThreeDHomeCard extends StatelessWidget {
     );
   }
 }
-

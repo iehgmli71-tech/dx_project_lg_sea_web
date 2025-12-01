@@ -5,6 +5,8 @@ import '../consumables/consumables_overview.dart';
 import '../power/power_management.dart';
 import '../mypage/my_page.dart';
 import 'package:dx_projecet_lg_sea/ui/cardmode/common/dialog.dart';
+import 'package:dx_projecet_lg_sea/ui/cardmode/common/notification.dart';
+import 'prayer_schedule_sheet.dart';
 
 class CardMode extends StatefulWidget {
   final bool isLoggedIn;
@@ -284,11 +286,8 @@ class _CardModeState extends State<CardMode> {
             child: IconButton(
               icon: const Icon(Icons.notifications_none, color: Colors.black87),
               onPressed: () {
-                setState(() => showNotifications = true);
-                _showSimpleDialog(
-                  '알림',
-                  'NotificationLayer 자리에 들어갈 화면입니다.',
-                );
+                // 기존: setState(() => showNotifications = true); _showSimpleDialog(...)
+                showNotificationLayer(context);
               },
             ),
           ),

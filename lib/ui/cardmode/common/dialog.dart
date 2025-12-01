@@ -762,7 +762,8 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                 children: [
                   const Text('💡', style: TextStyle(fontSize: 18)),
                   const SizedBox(width: 8),
-                  Column(
+              Expanded(
+                child:Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
@@ -782,6 +783,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                       ),
                     ],
                   ),
+                 ),
                 ],
               ),
             ),

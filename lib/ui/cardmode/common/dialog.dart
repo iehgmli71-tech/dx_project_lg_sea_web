@@ -321,10 +321,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                      child: Text(
-                        widget.device.iconEmoji,
-                        style: const TextStyle(fontSize: 24),
-                      ),
+                      child: _deviceImage(widget.device),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1275,10 +1272,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                      child: Text(
-                        widget.device.iconEmoji,
-                        style: const TextStyle(fontSize: 24),
-                      ),
+                        child: _deviceImage(widget.device),
                     ),
                   ),
                   const SizedBox(width: 12),

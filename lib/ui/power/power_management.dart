@@ -2,6 +2,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import '../../models/postpaid_models.dart'; // 방금 만든 모델
+
+
 class PowerManagement extends StatefulWidget {
   const PowerManagement({Key? key}) : super(key: key);
 
@@ -26,11 +32,61 @@ class _PowerManagementState extends State<PowerManagement> {
   final TextEditingController _tokenInputController =
   TextEditingController();
 
+  PostpaidDashboard? _postpaidDashboard; // 백엔드에서 받은 후불 대시보드 데이터
+  bool _isLoadingPostpaid = false;       // 로딩 중 여부
+  String? _postpaidError;                // 에러 메시지(있으면)
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPostpaidDashboard(); // 화면 처음 켜질 때 후불 대시보드 로드
+  }
+
   @override
   void dispose() {
     _tokenInputController.dispose();
     super.dispose();
   }
+
+  Future<void> _loadPostpaidDashboard() async {
+    setState(() {
+      _isLoadingPostpaid = true;
+      _postpaidError = null;
+    });
+
+    const userId = 1; // TODO: 로그인 연동되면 실제 유저 id로 교체
+
+    // 안드로이드 에뮬레이터면 10.0.2.2, iOS 시뮬레이터면 localhost
+    final uri = Uri.parse(
+      'http://10.0.2.2:8082/api/users/$userId/postpaid-dashboard',
+    );
+
+    try {
+      final resp = await http.get(uri);
+
+      if (resp.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(resp.body);
+        setState(() {
+          _postpaidDashboard = PostpaidDashboard.fromJson(data);
+        });
+      } else {
+        setState(() {
+          _postpaidError = 'API 오류: ${resp.statusCode}';
+        });
+        print('API error: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      setState(() {
+        _postpaidError = '네트워크 오류: $e';
+      });
+      print('API call failed: $e');
+    } finally {
+      setState(() {
+        _isLoadingPostpaid = false;
+      });
+    }
+  }
+
 
   void _handleCalculateAddToken() {
     if (addTokenMeterBrand.isNotEmpty && addTotalTokens > 0) {
@@ -72,6 +128,7 @@ class _PowerManagementState extends State<PowerManagement> {
   @override
   Widget build(BuildContext context) {
     final remainingToken = (savedTotalToken - savedUsedToken).clamp(0, double.infinity);
+    final bills = _postpaidDashboard?.bills ?? [];  // 🔹 청구서 리스트
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -466,7 +523,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: const [
+                                  children: [
                                     Row(
                                       mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -483,18 +540,24 @@ class _PowerManagementState extends State<PowerManagement> {
                                       ],
                                     ),
                                     SizedBox(height: 12),
+                                    // 예상 요금: 서버 데이터 적용
                                     Text(
-                                      'Rp 245,000',
-                                      style: TextStyle(
+                                      _postpaidDashboard == null
+                                          ? 'Rp -'
+                                          : 'Rp ${_postpaidDashboard!.expectedAmount.toStringAsFixed(0)}',
+                                      style: const TextStyle(
                                         fontSize: 32,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
                                     ),
-                                    SizedBox(height: 4),
+                                    const SizedBox(height: 4),
+                                    // 결제일: 서버 데이터 적용
                                     Text(
-                                      '결제일: 매월 5일',
-                                      style: TextStyle(
+                                      _postpaidDashboard?.dueDate == null
+                                          ? '결제일 정보 없음'
+                                          : '결제일: ${_postpaidDashboard!.dueDate}',
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         color: Colors.white70,
                                       ),
@@ -508,7 +571,9 @@ class _PowerManagementState extends State<PowerManagement> {
                                     child: _SmallStatCard(
                                       icon: Icons.trending_down,
                                       label: '오늘 사용량',
-                                      value: '42',
+                                      value: _postpaidDashboard == null
+                                          ? '-'
+                                          : _postpaidDashboard!.todayUsageKwh.toStringAsFixed(0),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -516,7 +581,9 @@ class _PowerManagementState extends State<PowerManagement> {
                                     child: _SmallStatCard(
                                       icon: Icons.bolt,
                                       label: '이번 달 사용량',
-                                      value: '850',
+                                      value: _postpaidDashboard == null
+                                          ? '-'
+                                          : _postpaidDashboard!.monthUsageKwh.toStringAsFixed(0),
                                     ),
                                   ),
                                 ],
@@ -534,27 +601,33 @@ class _PowerManagementState extends State<PowerManagement> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              Column(
-                                children: const [
-                                  _BillingItem(
-                                    month: '2024년 10월',
-                                    amount: 'Rp 232,000',
-                                    status: '완납',
-                                  ),
-                                  SizedBox(height: 8),
-                                  _BillingItem(
-                                    month: '2024년 9월',
-                                    amount: 'Rp 218,000',
-                                    status: '완납',
-                                  ),
-                                  SizedBox(height: 8),
-                                  _BillingItem(
-                                    month: '2024년 8월',
-                                    amount: 'Rp 245,000',
-                                    status: '완납',
-                                  ),
-                                ],
-                              ),
+
+                              if (_isLoadingPostpaid) ...[
+                                const Center(child: CircularProgressIndicator()),
+                              ] else if (_postpaidError != null) ...[
+                                Text(
+                                  _postpaidError!,
+                                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                                ),
+                              ] else if (bills.isEmpty) ...[
+                                const Text(
+                                  '청구 내역이 없습니다.',
+                                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                                ),
+                              ] else ...[
+                                Column(
+                                  children: [
+                                    for (final b in bills) ...[
+                                      _BillingItem(
+                                        month: '${b.year}년 ${b.month}월',
+                                        amount: 'Rp ${b.amount.toStringAsFixed(0)}',
+                                        status: b.status == 'PAID' ? '완납' : '미납',
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),

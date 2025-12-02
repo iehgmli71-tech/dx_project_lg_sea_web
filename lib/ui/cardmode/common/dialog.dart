@@ -10,6 +10,7 @@ enum DeviceType {
   airConditioner,
 }
 
+
 /// 🔥 카드 화면과 연동하기 위한 전원 상태 콜백
 typedef PowerChanged = void Function(bool);
 
@@ -348,15 +349,36 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                       ],
                     ),
                   ),
-                  Switch(
-                    value: isOn,
-                    activeColor: Colors.green,
-                    onChanged: (val) {
-                      setState(() => isOn = val);
-                      widget.onPowerChanged(val);
-                    },
+
+                  // 닫기 버튼
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+
+              // 전원카드
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() => isOn = !isOn);
+                    widget.onPowerChanged?.call(isOn);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
+                    foregroundColor: isOn ? Colors.white : Colors.grey.shade700,
+                    elevation: isOn ? 4 : 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  icon: const Icon(Icons.power_settings_new),
+                  label: Text(isOn ? '켜짐' : '꺼짐'),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -993,7 +1015,7 @@ class _DryerSheetState extends State<DryerSheet> {
                     borderRadius: BorderRadius.circular(18)),
               ),
               icon: const Icon(Icons.power_settings_new),
-              label: Text(isOn ? '중지' : '시작'),
+              label: Text(isOn ? '꺼짐' : '켜짐'),
             ),
           ),
           const SizedBox(height: 16),
@@ -1276,6 +1298,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  //이름+상테 텍스트
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1299,11 +1322,35 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                       ],
                     ),
                   ),
+
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+
+              // 전원 버튼 (카드 스타일)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() => isOn = !isOn);
+                    widget.onPowerChanged?.call(isOn);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
+                    foregroundColor: isOn ? Colors.white : Colors.grey.shade700,
+                    elevation: isOn ? 4 : 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  icon: const Icon(Icons.power_settings_new),
+                  label: Text(isOn ? '켜짐' : '꺼짐'),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -2384,7 +2431,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                 widget.onPowerChanged?.call(isOn);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isOn ? Colors.blue : Colors.grey.shade200,
+                backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
                 foregroundColor: isOn ? Colors.white : Colors.grey.shade700,
                 elevation: isOn ? 4 : 0,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -2393,7 +2440,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                 ),
               ),
               icon: const Icon(Icons.power_settings_new),
-              label: Text(isOn ? '끄기' : '켜기'),
+              label: Text(isOn ? '켜짐' : '꺼짐'),
             ),
           ),
           const SizedBox(height: 16),

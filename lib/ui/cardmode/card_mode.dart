@@ -546,18 +546,20 @@ class _CardModeState extends State<CardMode> {
             onPressed: () {
               _showSimpleDialog('가전 추가', '여기에 가전 추가 로직을 구현하면 됩니다.');
             },
-            icon: const Icon(Icons.add),
-            label: const Text('가전 추가하기'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
-              ),
-              side: const BorderSide(
-                color: Color(0xFF9CA3AF),
-              ),
-              backgroundColor: const Color(0xFFF9FAFB),
+            icon: const Icon(Icons.add, size: 20),
+            label: const Text(
+              '가전 추가하기',
+              style: TextStyle(fontSize: 16), // 글씨 키우기
             ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(300, 52),  // ⬅️ 버튼 크기 직접 설정 (가로, 세로)
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              backgroundColor: const Color(0xFFF9FAFB),
+              side: const BorderSide(color: Color(0xFF9CA3AF)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30), // 둥글게
+            ),
+          ),
           ),
         ],
       ),

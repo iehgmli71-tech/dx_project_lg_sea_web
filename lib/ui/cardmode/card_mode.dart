@@ -296,7 +296,7 @@ class _CardModeState extends State<CardMode> {
     );
   }
 
-  // 인사 + Prayer Schedule + 날씨 카드
+// 인사 + Prayer Schedule + 날씨 카드
   Widget _buildGreetingCard() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -308,8 +308,10 @@ class _CardModeState extends State<CardMode> {
           border: Border.all(color: const Color(0xFFBBF7D0)),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 왼쪽 텍스트
                 Column(
@@ -333,47 +335,43 @@ class _CardModeState extends State<CardMode> {
                     ),
                   ],
                 ),
+
                 const Spacer(),
+
                 // Prayer 버튼
                 TextButton(
                   onPressed: () {
-                    setState(() => showPrayerSchedule = true);
-                    _showSimpleDialog(
-                      'Prayer Schedule',
-                      'PrayerScheduleLayer 자리에 들어갈 화면입니다.\n아래 버튼으로 라마단 절전 모드 토글도 가능하게 했어요.',
-                      extraActions: [
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              ramadanEcoMode = !ramadanEcoMode;
-                            });
-                            Navigator.of(context).pop();
-                          },
-                          child: Text(
-                            ramadanEcoMode ? '라마단 모드 해제' : '라마단 모드 켜기',
-                          ),
-                        ),
-                      ],
+                    showPrayerScheduleSheet(
+                      context,
+                      initialRamadanEcoMode: ramadanEcoMode,
+                      onRamadanModeChange: (enabled) {
+                        setState(() {
+                          ramadanEcoMode = enabled;
+                        });
+                      },
                     );
                   },
                   style: TextButton.styleFrom(
                     backgroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: Colors.grey.shade300),
                     ),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.schedule, size: 18, color: Colors.grey),
+                      Icon(Icons.nightlight_round, size: 18, color:Color(0xFFA5D6A7)),
                       SizedBox(height: 2),
                       Text(
                         'Prayer\nSchedule',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.black54,
+                          color: Color(0xFF66BB6A),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -382,7 +380,10 @@ class _CardModeState extends State<CardMode> {
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
+
+            // 날씨 Row
             Row(
               children: [
                 const Text('☁️  '),
@@ -540,7 +541,7 @@ class _CardModeState extends State<CardMode> {
           ),
 
           // 가전 추가 버튼
-          const SizedBox(height: 15),
+          const SizedBox(height: 30),
           OutlinedButton.icon(
             onPressed: () {
               _showSimpleDialog('가전 추가', '여기에 가전 추가 로직을 구현하면 됩니다.');

@@ -308,14 +308,6 @@ class _LoginCard extends StatelessWidget {
               child: const Text('로그인하기'),
             ),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: onTapSignup,
-              child: const Text('회원가입'),
-            ),
-          ),
         ],
       ),
     );

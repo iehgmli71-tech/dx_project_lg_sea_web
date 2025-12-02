@@ -1,8 +1,22 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:dx_projecet_lg_sea/ui/cardmode/card_mode.dart';
 
 class RegenLoading extends StatefulWidget {
-  const RegenLoading({super.key});
+  final bool isLoggedIn;
+  final String userName;
+  final String membership;
+  final String qReward;
+  final VoidCallback onLogout;
+
+  const RegenLoading({
+    super.key,
+    required this.isLoggedIn,
+    required this.userName,
+    required this.membership,
+    required this.qReward,
+    required this.onLogout,
+  });
 
   @override
   State<RegenLoading> createState() => _RegenLoadingState();
@@ -35,6 +49,24 @@ class _RegenLoadingState extends State<RegenLoading>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    // ✅ 여기 추가: 2초 후 CardMode로 이동
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CardMode(
+            isLoggedIn: widget.isLoggedIn,
+            userName: widget.userName,
+            membership: widget.membership,
+            qReward: widget.qReward,
+            onLogout: widget.onLogout,
+          ),
+        ),
+      );
+    });
   }
 
   @override

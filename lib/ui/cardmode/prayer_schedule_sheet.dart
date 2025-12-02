@@ -12,14 +12,15 @@ Future<void> showPrayerScheduleSheet(
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withOpacity(0.4),
     builder: (_) {
-      return const FractionallySizedBox(
+      return FractionallySizedBox(
         heightFactor: 0.85, // 85vh 느낌
-        child: _PrayerScheduleSheet(),
+        child: _PrayerScheduleSheet(
+          initialRamadanEcoMode: initialRamadanEcoMode,
+          onRamadanModeChange: onRamadanModeChange,
+        ),
       );
     },
-  ).then((value) {
-    // Ramadan 모드 변경은 내부에서 onRamadanModeChange 콜백으로 올려보냄
-  });
+  );
 }
 
 /// 각 달에 대한 캘린더 데이터
@@ -39,14 +40,20 @@ class _MonthData {
 
 /// 실제 바텀시트 위젯
 class _PrayerScheduleSheet extends StatefulWidget {
-  const _PrayerScheduleSheet({super.key});
+  final bool initialRamadanEcoMode;
+  final ValueChanged<bool> onRamadanModeChange;
+
+  const _PrayerScheduleSheet({
+    super.key,
+    required this.initialRamadanEcoMode,
+    required this.onRamadanModeChange,
+  });
 
   @override
   State<_PrayerScheduleSheet> createState() => _PrayerScheduleSheetState();
 }
 
 class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
-  bool tvAlert = false; // 아직 UI에 안 쓰이지만 구조 맞춰둠
   bool washerDryerDelay = false;
   bool fridgeDoorAlert = false;
   bool ramadanEcoMode = false;
@@ -62,6 +69,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
   void initState() {
     super.initState();
     calendarMonths = _generateCalendar();
+    ramadanEcoMode = widget.initialRamadanEcoMode;
   }
 
   /// React 코드와 동일한 로직: 오늘~2026.04.30까지 캘린더 생성
@@ -141,6 +149,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         ramadanEcoMode = false;
         startDate = null;
         endDate = null;
+        widget.onRamadanModeChange(false);  // 🔥 CardMode에 false 전달
       }
     });
   }
@@ -178,6 +187,12 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         showCalendar = false;
         selectingStartDate = true;
       });
+      // 🔥 CardMode 상태 갱신
+      widget.onRamadanModeChange(true);
+
+      // 시트 닫고 싶으면 여기서 pop
+      Navigator.of(context).pop();
+
     }
   }
 
@@ -227,17 +242,10 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                             Row(
                               children: [
                                 Container(
-                                  width: 56,
-                                  height: 56,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFD1FAE5),
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
+                                  width: 40,
+                                  height: 40,
+                                  alignment: Alignment.center,
                                   child: const Center(
-                                    child: Text(
-                                      '🕌',
-                                      style: TextStyle(fontSize: 28),
-                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 16),

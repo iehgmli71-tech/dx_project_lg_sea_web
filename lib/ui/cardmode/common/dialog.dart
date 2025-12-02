@@ -225,7 +225,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
       spin: '탈수 2회',
       spinSub: null,
       // 🔥 여기서 피그마의 "특수 기능" 블럭에 들어갈 내용
-      special: '스팀으로 냄새와 구김을 줄이는 고급 코스입니다.',
+      special: '강력 스팀으로 세탁조에 청결함을 유지할 수 있습니다.',
     ),
     'Najis Wash': _WashCourseDetail(
       wash: '세탁 3회 (강하게)',

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-
 import '../ui/cardmode/card_mode.dart';
 import '../ui/mypage/my_page.dart';
 import '../services/login.dart';
+import '../ui/loading/regen_loading.dart';
 
 class UiHome extends StatefulWidget {
   const UiHome({super.key});
@@ -46,12 +46,12 @@ class _UiHomeState extends State<UiHome> {
     });
   }
 
-  // 🔥 LG Regen / 카드모드 진입
+  // 🔥 LG Regen / 카드모드 진입전 regen_loading
   void _openCardMode() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CardMode(
+        builder: (_) => RegenLoading(
           isLoggedIn: isLoggedIn,
           userName: userName,
           membership: membership,

@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _pwController = TextEditingController();
 
   bool _isLoading = false;
+  bool _pwVisible = false;
 
   // 서버에 로그인 요청
   Future<void> _handleLogin() async {
@@ -130,9 +131,19 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _pwController,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: !_pwVisible, // true면 **** / false면 숫자 보임
+              decoration: InputDecoration(
                 labelText: '비밀번호 (임시: 1234)',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _pwVisible ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _pwVisible = !_pwVisible;  // 아이콘 클릭 시 값 반전
+                    });
+                  },
+                ),
               ),
             ),
             const SizedBox(height: 24),

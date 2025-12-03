@@ -20,6 +20,8 @@ enum PaymentType { prepaid, postpaid }
 class _PowerManagementState extends State<PowerManagement> {
   PaymentType paymentType = PaymentType.prepaid;
 
+  bool _isSavingPrepaid = false; // 선불 저장 중인지 표시용
+
   bool showAddTokenPopup = false;
   String addTokenMeterBrand = '';
   String addTokenInput = '';
@@ -88,16 +90,66 @@ class _PowerManagementState extends State<PowerManagement> {
   }
 
 
-  void _handleCalculateAddToken() {
-    if (addTokenMeterBrand.isNotEmpty && addTotalTokens > 0) {
+  Future<void> _handleCalculateAddToken() async {
+    // 기본 검증: 브랜드 선택 + 토큰이 0보다 커야 함
+    if (addTokenMeterBrand.isEmpty || addTotalTokens <= 0) return;
+
+    setState(() {
+      _isSavingPrepaid = true;
+    });
+
+    const userId = 1; // TODO: 나중에 로그인 연동 후 실제 userId로 교체
+    final uri = Uri.parse(
+      'http://10.0.2.2:8082/api/users/$userId/prepaid-topup',
+    );
+
+    final body = json.encode({
+      'brand': addTokenMeterBrand,   // "Itron", "Hexing", "Actaris"
+      'amountKwh': addTotalTokens,   // 누적 입력한 토큰 값 (예: 5000)
+    });
+
+    try {
+      final resp = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (resp.statusCode == 200) {
+        final data = json.decode(resp.body) as Map<String, dynamic>;
+
+        final double newTotal =
+        (data['totalTokenKwh'] as num).toDouble();
+        final double newUsed =
+        (data['usedTokenKwh'] as num).toDouble();
+
+        setState(() {
+          // 서버에서 받은 최신 값으로 게이지 갱신
+          savedTotalToken = newTotal;
+          savedUsedToken = newUsed;
+
+          // 팝업 내부 상태 초기화
+          showAddTokenPopup = false;
+          addTokenMeterBrand = '';
+          addTokenInput = '';
+          _tokenInputController.clear();
+          addTotalTokens = 0;
+          addTokenHistory.clear();
+        });
+      } else {
+        // API 에러
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('토큰 저장 실패: ${resp.statusCode}')),
+        );
+      }
+    } catch (e) {
+      // 네트워크 에러
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('네트워크 오류: $e')),
+      );
+    } finally {
       setState(() {
-        savedTotalToken += addTotalTokens;
-        showAddTokenPopup = false;
-        addTokenMeterBrand = '';
-        addTokenInput = '';
-        _tokenInputController.clear();
-        addTotalTokens = 0;
-        addTokenHistory.clear();
+        _isSavingPrepaid = false;
       });
     }
   }
@@ -974,30 +1026,35 @@ class _PowerManagementState extends State<PowerManagement> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: (addTokenMeterBrand.isNotEmpty &&
-                                  addTotalTokens > 0)
-                                  ? _handleCalculateAddToken
-                                  : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                disabledBackgroundColor:
-                                Colors.grey.shade300,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                elevation: 6,
-                              ),
-                              child: const Text(
-                                '설정 완료 및 저장',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                                  onPressed: (addTokenMeterBrand.isNotEmpty &&
+                                      addTotalTokens > 0 &&
+                                      !_isSavingPrepaid)
+                                      ? () {
+                                    _handleCalculateAddToken(); // async지만 그냥 호출하면 됨
+                                  }
+                                      : null,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    disabledBackgroundColor: Colors.grey.shade300,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                    elevation: 6,
+                                  ),
+                                  child: _isSavingPrepaid
+                                      ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                      : const Text(
+                                    '설정 완료 및 저장',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                )
                             ),
-                          ),
                         ],
                       ),
                     ),

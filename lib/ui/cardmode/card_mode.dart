@@ -7,6 +7,8 @@ import '../mypage/my_page.dart';
 import 'package:dx_projecet_lg_sea/ui/cardmode/common/dialog.dart';
 import 'package:dx_projecet_lg_sea/ui/cardmode/common/notification.dart';
 import 'prayer_schedule_sheet.dart';
+// 🔥 ESP32 연동
+import 'package:dx_projecet_lg_sea/services/esp32_api.dart';
 
 class CardMode extends StatefulWidget {
   final bool isLoggedIn;
@@ -28,7 +30,6 @@ class CardMode extends StatefulWidget {
   State<CardMode> createState() => _CardModeState();
 }
 
-
 class _CardModeState extends State<CardMode> {
   Device? selectedDevice;
   bool showPrayerSchedule = false;
@@ -40,7 +41,14 @@ class _CardModeState extends State<CardMode> {
   // 디바이스 목록
   final List<Device> devices = allDevices;
 
-  // JS handleDeviceStatusChange 대응
+  @override
+  void initState() {
+    super.initState();
+    // CardMode(=Regen)에 들어올 때 세 보드에 Hello Regen
+    Esp32Api.showHelloRegenAll();
+  }
+
+  // JS handleDeviceStatusChange 대응 + ESP32 연동
   void _handleDeviceStatusChange(String deviceId, bool isOn) {
     setState(() {
       for (final d in devices) {
@@ -49,14 +57,18 @@ class _CardModeState extends State<CardMode> {
           String? newDetail = d.detail;
 
           if (deviceId == '1') {
+            // WashingMachine
             newStatus = isOn ? 'Running' : 'Off';
             newDetail = isOn ? '35 min left' : null;
           } else if (deviceId == '2') {
+            // Dryer (ESP32 연동 없음)
             newStatus = isOn ? 'Drying' : 'Off';
             newDetail = isOn ? '20 min left' : null;
           } else if (deviceId == '3') {
+            // Refrigerator
             newStatus = isOn ? '34°F' : 'Off';
           } else if (deviceId == '4') {
+            // Air Conditioner
             newStatus = isOn ? '24°C' : 'Off';
           }
 
@@ -73,6 +85,21 @@ class _CardModeState extends State<CardMode> {
         }
       }
     });
+
+    // 🔥 하드웨어 쪽 LCD/LED 업데이트
+    if (isOn) {
+      if (deviceId == '1') {
+        // 세탁기 전원 ON → "Wash Contact" + 흰색 LED
+        Esp32Api.washerPowerOn();
+      } else if (deviceId == '3') {
+        // 냉장고 전원 ON → "Fridge Contact" + 흰색 LED
+        Esp32Api.fridgePowerOn();
+      } else if (deviceId == '4') {
+        // 에어컨 전원 ON → "AC Contact" + 흰색 LED
+        Esp32Api.acPowerOn();
+      }
+    }
+    // OFF 시에는 UI만 Off로 두고, 별도 텍스트는 보내지 않음
   }
 
   @override
@@ -151,15 +178,13 @@ class _CardModeState extends State<CardMode> {
     } else if (activeTab == 'status') {
       return ConsumablesOverviewScreen(devices: devices);
     } else if (activeTab == 'my') {
-      // 🔥 CardMode 안에서 보여주는 MyPage
+      // CardMode 안에서 보여주는 MyPage
       return MyPage(
         isLoggedIn: widget.isLoggedIn,
         userName: widget.userName,
         membership: widget.membership,
         qReward: widget.qReward,
         onTapLogin: () {
-          // CardMode 안에서는 로그인 누르면
-          // 그냥 홈(UiHome)으로 나가서 거기서 로그인하게 할 수 있음
           Navigator.pop(context);
         },
         onTapSignup: () {
@@ -168,7 +193,6 @@ class _CardModeState extends State<CardMode> {
           );
         },
         onTapLogout: () {
-          // 🔥 실제 로그아웃 동작
           widget.onLogout(); // UiHome 쪽 상태 초기화
           Navigator.pop(context); // CardMode 닫고 UiHome 으로 복귀
         },
@@ -249,7 +273,7 @@ class _CardModeState extends State<CardMode> {
                     ),
                     child: ClipOval(
                       child: Image.asset(
-                        'images/Lg_logo.png', // newLgSeaLogo2 대신
+                        'images/Lg_logo.png',
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -286,7 +310,6 @@ class _CardModeState extends State<CardMode> {
             child: IconButton(
               icon: const Icon(Icons.notifications_none, color: Colors.black87),
               onPressed: () {
-                // 기존: setState(() => showNotifications = true); _showSimpleDialog(...)
                 showNotificationLayer(context);
               },
             ),
@@ -296,7 +319,7 @@ class _CardModeState extends State<CardMode> {
     );
   }
 
-// 인사 + Prayer Schedule + 날씨 카드
+  // 인사 + Prayer Schedule + 날씨 카드
   Widget _buildGreetingCard() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -341,6 +364,7 @@ class _CardModeState extends State<CardMode> {
                 // Prayer 버튼
                 TextButton(
                   onPressed: () {
+                    // 🔴 여기서 더 이상 async/await 사용하지 않음
                     showPrayerScheduleSheet(
                       context,
                       initialRamadanEcoMode: ramadanEcoMode,
@@ -365,7 +389,8 @@ class _CardModeState extends State<CardMode> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.nightlight_round, size: 18, color:Color(0xFFA5D6A7)),
+                      Icon(Icons.nightlight_round,
+                          size: 18, color: Color(0xFFA5D6A7)),
                       SizedBox(height: 2),
                       Text(
                         'Prayer\nSchedule',
@@ -549,17 +574,18 @@ class _CardModeState extends State<CardMode> {
             icon: const Icon(Icons.add, size: 20),
             label: const Text(
               '가전 추가하기',
-              style: TextStyle(fontSize: 16), // 글씨 키우기
+              style: TextStyle(fontSize: 16),
             ),
             style: OutlinedButton.styleFrom(
-              minimumSize: const Size(300, 52),  // ⬅️ 버튼 크기 직접 설정 (가로, 세로)
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              minimumSize: const Size(300, 52),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               backgroundColor: const Color(0xFFF9FAFB),
               side: const BorderSide(color: Color(0xFF9CA3AF)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30), // 둥글게
+                borderRadius: BorderRadius.circular(30),
+              ),
             ),
-          ),
           ),
         ],
       ),
@@ -567,24 +593,24 @@ class _CardModeState extends State<CardMode> {
   }
 
   // 간단 알림/기도창 다이얼로그
-  void _showSimpleDialog(String title,
+  void _showSimpleDialog(
+      String title,
       String message, {
         List<Widget>? extraActions,
       }) {
     showDialog(
       context: context,
-      builder: (_) =>
-          AlertDialog(
-            title: Text(title),
-            content: Text(message),
-            actions: [
-              if (extraActions != null) ...extraActions,
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('닫기'),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          if (extraActions != null) ...extraActions,
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('닫기'),
           ),
+        ],
+      ),
     );
   }
 
@@ -618,10 +644,10 @@ class _CardModeState extends State<CardMode> {
         } else if (device.id == '3' || device.name == 'Refrigerator') {
           return RefrigeratorSheet(
             device: device,
-              initialOn: device.active,
-              onPowerChanged: (isOn) {
-                _handleDeviceStatusChange(device.id, isOn);
-              },
+            initialOn: device.active,
+            onPowerChanged: (isOn) {
+              _handleDeviceStatusChange(device.id, isOn);
+            },
           );
         } else if (device.id == '4' || device.name == 'Air Conditioner') {
           return AirConditionerSheet(
@@ -646,86 +672,84 @@ class _CardModeState extends State<CardMode> {
   }
 }
 
-
 class BottomNav extends StatelessWidget {
   final String activeTab;
   final ValueChanged<String> onTabChange;
 
   const BottomNav({
-  super.key,
-  required this.activeTab,
-  required this.onTabChange,
+    super.key,
+    required this.activeTab,
+    required this.onTabChange,
   });
 
   @override
   Widget build(BuildContext context) {
-  return Container(
-  padding: const EdgeInsets.symmetric(vertical: 12),
-  decoration: const BoxDecoration(
-  color: Colors.white,
-  boxShadow: [
-  BoxShadow(
-  blurRadius: 6,
-  color: Colors.black12,
-  offset: Offset(0, -2),
-  )
-  ],
-  ),
-  child: Row(
-  mainAxisAlignment: MainAxisAlignment.spaceAround,
-  children: [
-  _buildItem(
-  icon: Icons.home_outlined,
-  label: "홈",
-  tabId: 'home',
-  ),
-  _buildItem(
-  icon: Icons.bolt_outlined,
-  label: "전력",
-  tabId: 'power',
-  ),
-  _buildItem(
-  icon: Icons.info_outline,
-  label: "상태 확인",
-  tabId: 'status',
-  ),
-  _buildItem(
-  icon: Icons.person_outline,
-  label: "마이페이지",
-  tabId: 'my',
-  ),
-  ],
-  ),
-  );
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 6,
+            color: Colors.black12,
+            offset: Offset(0, -2),
+          )
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildItem(
+            icon: Icons.home_outlined,
+            label: "홈",
+            tabId: 'home',
+          ),
+          _buildItem(
+            icon: Icons.bolt_outlined,
+            label: "전력",
+            tabId: 'power',
+          ),
+          _buildItem(
+            icon: Icons.info_outline,
+            label: "상태 확인",
+            tabId: 'status',
+          ),
+          _buildItem(
+            icon: Icons.person_outline,
+            label: "마이페이지",
+            tabId: 'my',
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildItem({
-  required IconData icon,
-  required String label,
-  required String tabId,
+    required IconData icon,
+    required String label,
+    required String tabId,
   }) {
-  final bool selected = activeTab == tabId;
+    final bool selected = activeTab == tabId;
 
-  return GestureDetector(
-  onTap: () => onTabChange(tabId),
-  child: Column(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-  Icon(
-  icon,
-  color: selected ? Colors.green : Colors.black38,
-  ),
-  const SizedBox(height: 4),
-  Text(
-  label,
-  style: TextStyle(
-  fontSize: 12,
-  color: selected ? Colors.green : Colors.black38,
-  ),
-  ),
-  ],
-  ),
-  );
+    return GestureDetector(
+      onTap: () => onTabChange(tabId),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: selected ? Colors.green : Colors.black38,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: selected ? Colors.green : Colors.black38,
+            ),
+          ),
+        ],
+      ),
+    );
   }
-  }
-
+}

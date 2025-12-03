@@ -2454,12 +2454,482 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
           ),
           const SizedBox(height: 16),
 
-          // 이하 온도/모드/스페셜 모드 UI 는 기존 코드 그대로 사용하시면 됩니다.
-          // (위에서 _selectSpecialMode 내부만 보드 연동 추가)
+          if (isOn) ...[
+            // 온도 카드
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('온도'),
+                      const Spacer(),
+                      Text(
+                        '$temperature°C',
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _circleButton(
+                        icon: Icons.remove,
+                        onTap: () {
+                          setState(() {
+                            temperature = (temperature - 1).clamp(16, 30);
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Slider(
+                          min: 16,
+                          max: 30,
+                          value: temperature.toDouble(),
+                          onChanged: (v) =>
+                              setState(() => temperature = v.toInt()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _circleButton(
+                        icon: Icons.add,
+                        onTap: () {
+                          setState(() {
+                            temperature = (temperature + 1).clamp(16, 30);
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 기본 모드 카드
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('모드'),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 2.0,
+                    children: ['자동', '냉방', '송풍'].map((m) {
+                      final selected =
+                          (mode == m) && selectedSpecialMode == null;
+                      return TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor:
+                          selected ? Colors.blue : Colors.white,
+                          foregroundColor: selected
+                              ? Colors.white
+                              : Colors.grey.shade700,
+                          padding:
+                          const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: selected ? 2 : 0,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            mode = m;
+                            selectedSpecialMode = null;
+                          });
+                        },
+                        child: Text(m),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => showMoreModes = !showMoreModes),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.grey.shade700,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          showMoreModes ? '숨기기' : '더보기',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          showMoreModes
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                          size: 18,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 확장 모드들
+            if (showMoreModes) ...[
+              // 종교 및 테마 모드
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF8E1),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        SizedBox(width: 6),
+                        Text('종교 및 테마모드'),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    GridView.count(
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2.6,
+                      children: [
+                        'Prayer Mode',
+                        'Ramadan (Sahur)',
+                        'Ramadan (Iftar)',
+                        'Wudhu Mode',
+                      ].map((m) {
+                        final selected = selectedSpecialMode == m;
+                        return TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                            selected ? Colors.amber : Colors.white,
+                            foregroundColor: selected
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: selected ? 2 : 0,
+                          ),
+                          onPressed: () => _selectSpecialMode(m),
+                          child: Text(
+                            m,
+                            style: const TextStyle(fontSize: 11),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 절전 및 기능 모드
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE9F9EE),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        SizedBox(width: 6),
+                        Text('절전 및 기능 모드'),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    GridView.count(
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2.6,
+                      children: [
+                        'Hybrid',
+                        'Eco Night',
+                      ].map((m) {
+                        final selected = selectedSpecialMode == m;
+                        return TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                            selected ? Colors.green : Colors.white,
+                            foregroundColor: selected
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: selected ? 2 : 0,
+                          ),
+                          onPressed: () => _selectSpecialMode(m),
+                          child: Text(
+                            m,
+                            style: const TextStyle(fontSize: 11),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // 선택된 스페셜 모드 상세
+            if (selectedSpecialMode != null) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE3F2FD), Color(0xFFE8F5E9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.green.shade200,
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          selectedSpecialMode!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            '활성',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 🔧 여기서 childAspectRatio 줄여서 높이 확보
+                    GridView.count(
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2.2, // ⬅️ 3.0 → 2.2 로 수정
+                      children: [
+                        _modeInfoCard(
+                          icon: '🌡️',
+                          label: '온도',
+                          value: specialModes[selectedSpecialMode]!['temp']!,
+                        ),
+                        _modeInfoCard(
+                          iconWidget: const Icon(
+                            Icons.water_drop,
+                            size: 12,
+                            color: Colors.green,
+                          ),
+                          label: '습도',
+                          value: specialModes[selectedSpecialMode]!['humidity']!,
+                        ),
+                        _modeInfoCard(
+                          iconWidget: const Icon(
+                            Icons.air,
+                            size: 12,
+                            color: Colors.green,
+                          ),
+                          label: '풍량',
+                          value: specialModes[selectedSpecialMode]!['fan']!,
+                        ),
+                        _modeInfoCard(
+                          iconWidget: const Icon(
+                            Icons.timer,
+                            size: 12,
+                            color: Colors.green,
+                          ),
+                          label: '타이머',
+                          value: specialModes[selectedSpecialMode]!['timer']!,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Divider(height: 1),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Text(
+                          '💡',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '목적:',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            specialModes[selectedSpecialMode]!['purpose']!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-// _circleButton, _modeInfoCard 등도 기존 코드 그대로 유지
+  Widget _circleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: Colors.grey.shade700,
+        ),
+      ),
+    );
+  }
+
+  Widget _modeInfoCard({
+    String? icon,
+    Widget? iconWidget,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // 🔑 내용만큼만 차지
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (iconWidget != null)
+                iconWidget
+              else
+                Text(
+                  icon ?? '',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.green,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

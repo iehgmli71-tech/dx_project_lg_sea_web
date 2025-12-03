@@ -36,6 +36,43 @@ class _UiHomeState extends State<UiHome> {
     }
   }
 
+  Future<bool?> _showCardModeConfirmDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // 바깥 클릭으로 닫히지 않게
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'LG Regen 모드입니다',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text('이슬람 문화에 맞춤형 ThinQ 화면으로 이동할까요?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // 실행 X
+              },
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(true); // 실행 YES
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('실행'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // 로그아웃
   void _handleLogout() {
     setState(() {
@@ -158,7 +195,12 @@ class _UiHomeState extends State<UiHome> {
                     Transform.translate(
                       offset: const Offset(0, 15),
                       child: GestureDetector(
-                        onTap: _openCardMode, // ✅ 여기서 CardMode 열기
+                        onTap: () async {
+                          final confirmed = await _showCardModeConfirmDialog(context);
+                          if (confirmed == true) {
+                            _openCardMode();// ✅ 알림창에서 사용자가 확인 후 CardMode 열기
+                          }
+                        },
                         child: Container(
                           width: 70,
                           height: 70,

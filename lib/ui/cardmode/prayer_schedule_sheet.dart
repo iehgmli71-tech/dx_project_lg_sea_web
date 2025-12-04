@@ -57,8 +57,8 @@ class _PrayerScheduleSheet extends StatefulWidget {
 }
 
 class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
-  bool washerDryerDelay = false;
-  bool fridgeDoorAlert = false;
+  bool washerDryerDelay = false;   // Quiet Mode (세탁기)
+  bool fridgeDoorAlert = false;    // Quiet Mode (냉장고)
   bool ramadanEcoMode = false;
 
   bool showCalendar = false;
@@ -73,7 +73,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     super.initState();
     calendarMonths = _generateCalendar();
     ramadanEcoMode = widget.initialRamadanEcoMode;
-    _loadQuietModeSettings(); // 🔥 저장된 Quiet 모드 불러오기
+    _loadQuietModeSettings();
   }
 
   Future<void> _loadQuietModeSettings() async {
@@ -90,7 +90,48 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     await prefs.setBool('fridgeDoorAlert', fridgeDoorAlert);
   }
 
-  /// 오늘 ~ 2026.04.30까지 캘린더 생성
+  /// Quiet Home Mode 전체 스위치 눌렀을 때
+  Future<void> _handleQuietModeMainToggle(bool value) async {
+    setState(() {
+      washerDryerDelay = value;
+      fridgeDoorAlert = value;
+    });
+
+    await _saveQuietModeSettings();
+
+    // 🔥 여기서 실제 ESP32로 Quiet ON/OFF 명령 전송
+    if (value) {
+      // Quiet Home Mode ON
+      await Esp32Api.showQuietHomeModeAll();
+    } else {
+      // Quiet Home Mode OFF → 기본 Contact 상태로 복귀
+      await Esp32Api.clearQuietHomeModeAll(
+        washerConnected: true,
+        fridgeConnected: true,
+        acConnected: true,
+      );
+    }
+  }
+
+  /// Quiet 개별 토글(세탁기/냉장고) — 지금은 개별 on/off 시 ESP32 직접 호출 X
+  Future<void> _handleQuietIndividualToggle(
+      bool value,
+      bool isWasher,
+      ) async {
+    setState(() {
+      if (isWasher) {
+        washerDryerDelay = value;
+      } else {
+        fridgeDoorAlert = value;
+      }
+    });
+
+    await _saveQuietModeSettings();
+
+    // 개별 기능은 Quiet 전체 ON/OFF 동작에는 영향 없이 그대로 저장만 유지
+  }
+
+  /// 오늘~2026.04.30까지 달력 생성
   List<_MonthData> _generateCalendar() {
     final today = DateTime.now();
     final todayMidnight = DateTime(today.year, today.month, today.day);
@@ -106,17 +147,14 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
       final lastDayOfMonth = DateTime(year, month + 1, 0);
       final daysInMonth = lastDayOfMonth.day;
 
-      // Dart weekday: Mon=1 ... Sun=7 → Sun을 0으로 맞추기
       final startingDayOfWeek = firstDay.weekday % 7;
 
       final List<DateTime?> days = [];
 
-      // 앞쪽 빈칸
       for (int i = 0; i < startingDayOfWeek; i++) {
         days.add(null);
       }
 
-      // 날짜 채우기
       for (int d = 1; d <= daysInMonth; d++) {
         final date = DateTime(year, month, d);
         if (date.isBefore(todayMidnight)) {
@@ -130,7 +168,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         _MonthData(
           year: year,
           month: month,
-          monthName: '${year}년 ${month}월',
+          monthName: '$year년 $month월',
           days: days,
         ),
       );
@@ -141,38 +179,30 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     return months;
   }
 
-  /// Quiet Home Mode 카드 탭
-  void _handleQuietModeActivate() {
-    setState(() {
-      // 둘 다 켜져 있으면 둘 다 끄고, 아니면 둘 다 켬
-      if (washerDryerDelay && fridgeDoorAlert) {
-        washerDryerDelay = false;
-        fridgeDoorAlert = false;
-      } else {
-        washerDryerDelay = true;
-        fridgeDoorAlert = true;
-      }
-    });
-    _saveQuietModeSettings();
-  }
-
-  /// 라마단 토글
+  /// 라마단 전환 버튼
   void _handleRamadanToggle() {
-    setState(() {
-      if (!ramadanEcoMode) {
-        // 켜려는 시점 → 달력 시트 오픈
+    if (!ramadanEcoMode) {
+      // 켜기 → 날짜 선택 시트 오픈
+      setState(() {
         showCalendar = true;
         selectingStartDate = true;
         startDate = null;
         endDate = null;
-      } else {
-        // 끌 때 초기화
+      });
+    } else {
+      // 끄기
+      setState(() {
         ramadanEcoMode = false;
         startDate = null;
         endDate = null;
-        widget.onRamadanModeChange(false);
-      }
-    });
+      });
+
+      // 하위 카드 모드에도 전달
+      widget.onRamadanModeChange(false);
+
+      // ESP32 기본 Contact로 복귀
+      Esp32Api.clearRamadanModeAll();
+    }
   }
 
   void _handleDateSelect(DateTime date) {
@@ -183,10 +213,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         selectingStartDate = false;
       } else {
         if (startDate != null &&
-            date.isBefore(
-              DateTime(startDate!.year, startDate!.month, startDate!.day),
-            )) {
-          // 종료일이 시작일보다 앞이면 다시 시작일로 사용
+            date.isBefore(DateTime(startDate!.year, startDate!.month, startDate!.day))) {
           startDate = date;
           endDate = null;
           selectingStartDate = false;
@@ -197,7 +224,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     });
   }
 
-  /// 달력에서 “설정 완료” 눌렀을 때
+  /// 달력에서 "설정 완료"
   Future<void> _handleCalendarConfirm() async {
     if (startDate != null && endDate != null) {
       setState(() {
@@ -205,13 +232,11 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         washerDryerDelay = true;
         fridgeDoorAlert = true;
         showCalendar = false;
-        selectingStartDate = true;
       });
 
-      // CardMode 상단 배너 등에 반영
       widget.onRamadanModeChange(true);
 
-      // 라마단 모드 시작 → 하드웨어에 전송
+      // ESP32에 라마단 실행 명령
       await Esp32Api.showRamadanModeAll();
     }
   }
@@ -231,120 +256,16 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         top: false,
         child: Stack(
           children: [
-            /// 1) 메인 시트 내용 (Quiet 카드 + 기타들)
+            /// 메인 스크롤 영역
             SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 🔇 Quiet Home 카드 + 적용 버튼 전체 섹션
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 상단 Quiet 타이틀 + 전체 토글
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: const [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.nightlight_round,
-                                            color: Color(0xFF16A34A),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Quiet Home Mode 시행할까요?',
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF111827),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 8),
-                                      Padding(
-                                        padding: EdgeInsets.only(left: 26),
-                                        child: Text(
-                                          '기도 시간 동안 세탁기/건조기 · 냉장고 알림을 최소화합니다',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF6B7280),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                _buildSwitch(
-                                  (washerDryerDelay && fridgeDoorAlert),
-                                      (value) {
-                                    setState(() {
-                                      washerDryerDelay = value;
-                                      fridgeDoorAlert = value;
-                                    });
-                                    _saveQuietModeSettings();
-                                  },
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            // 개별 토글들
-                            Column(
-                              children: [
-                                _toggleTile(
-                                  icon: Icons.local_laundry_service_outlined,
-                                  title: '세탁기/건조기 완료 알림 지연',
-                                  subtitle: '소리 없이 앱 알림만',
-                                  value: washerDryerDelay,
-                                  onChanged: (v) {
-                                    setState(() => washerDryerDelay = v);
-                                    _saveQuietModeSettings();
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-                                _toggleTile(
-                                  icon: Icons.kitchen_outlined,
-                                  title: '냉장고 문 열림 알림 최소화',
-                                  subtitle: '소리 없이 앱 알림만',
-                                  value: fridgeDoorAlert,
-                                  onChanged: (v) {
-                                    setState(() => fridgeDoorAlert = v);
-                                    _saveQuietModeSettings();
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-                                _ramadanTile(), // 여기서 showCalendar = true 로 켜줌
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-                    ],
-                  ),
+                  _buildQuietHomeCard(),
                 ],
               ),
             ),
 
-            /// 2) 달력 오버레이 (맨 위에 겹치게) — **Stack의 두 번째 자식**
+            /// 달력 Overlay
             if (showCalendar) _buildCalendarOverlay(context),
           ],
         ),
@@ -352,7 +273,75 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     );
   }
 
-  /// 세탁기/냉장고용 일반 토글 타일
+  /// ===============================
+  /// QUIET HOME MODE 카드 UI + 기능
+  /// ===============================
+  Widget _buildQuietHomeCard() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// Quiet Home 타이틀 + 전체 스위치
+              Row(
+                children: [
+                  const Icon(Icons.nightlight_round, color: Color(0xFF16A34A)),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Quiet Home Mode 시행할까요?',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  _buildSwitch(
+                    (washerDryerDelay && fridgeDoorAlert),
+                        (value) => _handleQuietModeMainToggle(value),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              /// 개별 Quiet 옵션
+              _toggleTile(
+                icon: Icons.local_laundry_service_outlined,
+                title: '세탁기/건조기 완료 알림 지연',
+                subtitle: '소리 없이 앱 알림만',
+                value: washerDryerDelay,
+                onChanged: (v) => _handleQuietIndividualToggle(v, true),
+              ),
+              const SizedBox(height: 12),
+
+              _toggleTile(
+                icon: Icons.kitchen_outlined,
+                title: '냉장고 문 열림 알림 최소화',
+                subtitle: '소리 없이 앱 알림만',
+                value: fridgeDoorAlert,
+                onChanged: (v) => _handleQuietIndividualToggle(v, false),
+              ),
+
+              const SizedBox(height: 12),
+
+              _ramadanTile(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Quiet 개별 옵션 UI
   Widget _toggleTile({
     required IconData icon,
     required String title,
@@ -364,7 +353,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
@@ -376,11 +365,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
               ],
             ),
           ),
@@ -388,22 +373,20 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
             value: value,
             onChanged: onChanged,
             activeTrackColor: Colors.green.shade300,
-            inactiveThumbColor: Colors.grey.shade300,
-            inactiveTrackColor: Colors.grey.shade400,
           ),
         ],
       ),
     );
   }
 
-  /// 라마단 절전 모드 타일 (날짜 범위 표시)
+  /// 라마단 타일
   Widget _ramadanTile() {
     return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
           Container(
@@ -413,39 +396,22 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.bolt_outlined, color: Color(0xFF374151)),
+            child: const Icon(Icons.bolt_outlined),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text('라마단 절전모드', style: TextStyle(fontSize: 14)),
                 const Text(
-                  '라마단 절전모드',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF111827),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  '야간 전력 사용 최적화, 불필요한 가전 대기전력 차단',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
-                  ),
+                  '야간 전력 사용 최적화',
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
                 ),
                 if (ramadanEcoMode && startDate != null && endDate != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      '📅 ${_formatDate(startDate!)} ~ ${_formatDate(endDate!)}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF16A34A),
-                      ),
-                    ),
+                  Text(
+                    '📅 ${_formatDate(startDate!)} ~ ${_formatDate(endDate!)}',
+                    style: const TextStyle(fontSize: 11, color: Colors.green),
                   ),
               ],
             ),
@@ -456,7 +422,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     );
   }
 
-  /// 토글 스위치 (Figma 스타일)
+  /// 토글 스위치 (커스텀)
   Widget _buildSwitch(bool value, ValueChanged<bool> onChanged) {
     return GestureDetector(
       onTap: () => onChanged(!value),
@@ -477,13 +443,6 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(999),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
             ),
           ),
         ),
@@ -491,91 +450,65 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     );
   }
 
-  /// 달력 오버레이 (메인 시트 위에 덮어쓰기)
+  /// ============= 달력 오버레이 =============
   Widget _buildCalendarOverlay(BuildContext context) {
     return Positioned.fill(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            showCalendar = false;
-          });
-        },
+        onTap: () => setState(() => showCalendar = false),
         child: Container(
           color: Colors.black.withOpacity(0.4),
           child: GestureDetector(
-            onTap: () {}, // 버블링 방지
+            onTap: () {}, // 흘러내림 차단
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.8,
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             'Prayer Schedule',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF111827),
-                            ),
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                           ),
                           IconButton(
-                            onPressed: () {
-                              setState(() {
-                                showCalendar = false;
-                              });
-                            },
+                            onPressed: () => setState(() => showCalendar = false),
                             icon: const Icon(Icons.close),
                           ),
                         ],
                       ),
                     ),
+
                     Padding(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
-                        selectingStartDate
-                            ? '🗓️ 시작 날짜를 선택하세요'
-                            : '🗓️ 종료 날짜를 선택하세요',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF4B5563),
-                        ),
+                        selectingStartDate ? '🗓️ 시작 날짜를 선택하세요' : '🗓️ 종료 날짜를 선택하세요',
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF4B5563)),
                       ),
                     ),
-                    const SizedBox(height: 8),
 
-                    // 요일 헤더
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 4,
-                      ),
+                    const SizedBox(height: 12),
+
+                    /// 요일
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
                         children: const [
                           _WeekdayLabel('일'),
@@ -588,228 +521,63 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 4),
 
-                    // 월별 캘린더 리스트
+                    const SizedBox(height: 8),
+
+                    /// 월별 리스트
                     Expanded(
-                      child: Padding(
-                        padding:
-                        const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: ListView.builder(
-                          itemCount: calendarMonths.length,
-                          itemBuilder: (context, index) {
-                            final month = calendarMonths[index];
-                            return Padding(
-                              padding:
-                              const EdgeInsets.only(bottom: 12.0),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    month.monthName,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF4B5563),
-                                    ),
+                      child: ListView.builder(
+                        itemCount: calendarMonths.length,
+                        itemBuilder: (context, index) {
+                          final month = calendarMonths[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Column(
+                              children: [
+                                Text(
+                                  month.monthName,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  const SizedBox(height: 4),
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                    const NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 7,
-                                      mainAxisSpacing: 4,
-                                      crossAxisSpacing: 4,
-                                    ),
-                                    itemCount: month.days.length,
-                                    itemBuilder: (context, dayIndex) {
-                                      final day = month.days[dayIndex];
-
-                                      final bool isStart = day != null &&
-                                          startDate != null &&
-                                          _isSameDay(day, startDate!);
-                                      final bool isEnd = day != null &&
-                                          endDate != null &&
-                                          _isSameDay(day, endDate!);
-                                      final bool isInRange = day != null &&
-                                          startDate != null &&
-                                          endDate != null &&
-                                          day.isAfter(startDate!) &&
-                                          day.isBefore(endDate!);
-                                      final bool isToday = day != null &&
-                                          _isSameDay(
-                                              day, DateTime.now());
-
-                                      Color bgColor;
-                                      Color textColor;
-                                      BoxBorder? border;
-
-                                      if (day == null) {
-                                        bgColor =
-                                        const Color(0xFFF3F4F6);
-                                        textColor =
-                                        const Color(0xFF9CA3AF);
-                                      } else if (isStart || isEnd) {
-                                        bgColor =
-                                        const Color(0xFF22C55E);
-                                        textColor = Colors.white;
-                                      } else if (isInRange) {
-                                        bgColor =
-                                        const Color(0xFFDCFCE7);
-                                        textColor =
-                                        const Color(0xFF15803D);
-                                        border = Border.all(
-                                          color:
-                                          const Color(0xFF4ADE80),
-                                        );
-                                      } else {
-                                        bgColor = Colors.white;
-                                        textColor =
-                                        const Color(0xFF111827);
-                                      }
-
-                                      return GestureDetector(
-                                        onTap: day == null
-                                            ? null
-                                            : () =>
-                                            _handleDateSelect(day),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: bgColor,
-                                            borderRadius:
-                                            BorderRadius.circular(8),
-                                            border: border ??
-                                                (isToday
-                                                    ? Border.all(
-                                                  color:
-                                                  const Color(
-                                                    0xFF4ADE80,
-                                                  ),
-                                                )
-                                                    : null),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            day?.day.toString() ?? '',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: textColor,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                                ),
+                                const SizedBox(height: 6),
+                                _buildMonthGrid(month),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
 
-                    // 선택 정보 & 확인 버튼
+                    /// 설정 완료 버튼
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                          24, 8, 24, 16),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    '시작',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    startDate != null
-                                        ? _formatDate(startDate!)
-                                        : '-',
-                                    style: const TextStyle(
-                                        fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                              const Text(
-                                '→',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFF9CA3AF),
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    '종료',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    endDate != null
-                                        ? _formatDate(endDate!)
-                                        : '-',
-                                    style: const TextStyle(
-                                        fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                (startDate != null &&
-                                    endDate != null)
-                                    ? const Color(0xFF22C55E)
-                                    : const Color(0xFFE5E7EB),
-                                foregroundColor:
-                                (startDate != null &&
-                                    endDate != null)
-                                    ? Colors.white
-                                    : const Color(0xFF9CA3AF),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(16),
-                                ),
-                              ),
-                              onPressed: (startDate != null &&
-                                  endDate != null)
-                                  ? () async {
-                                await _handleCalendarConfirm();
-                              }
-                                  : null,
-                              child: const Text(
-                                '라마단 절전모드 설정 완료',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: (startDate != null && endDate != null)
+                                ? const Color(0xFF22C55E)
+                                : const Color(0xFFE5E7EB),
+                            foregroundColor: (startDate != null && endDate != null)
+                                ? Colors.white
+                                : const Color(0xFF9CA3AF),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                        ],
+                          onPressed: (startDate != null && endDate != null)
+                              ? () async {
+                            await _handleCalendarConfirm();
+                          }
+                              : null,
+                          child: const Text(
+                            '라마단 절전모드 설정 완료',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -822,6 +590,68 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     );
   }
 
+  Widget _buildMonthGrid(_MonthData month) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: month.days.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+      ),
+      itemBuilder: (context, index) {
+        final day = month.days[index];
+
+        final bool isStart = day != null && startDate != null && _isSameDay(day, startDate!);
+        final bool isEnd = day != null && endDate != null && _isSameDay(day, endDate!);
+        final bool isInRange = day != null &&
+            startDate != null &&
+            endDate != null &&
+            day.isAfter(startDate!) &&
+            day.isBefore(endDate!);
+        final bool isToday = day != null && _isSameDay(day, DateTime.now());
+
+        Color bgColor;
+        Color textColor = const Color(0xFF111827);
+        BoxBorder? border;
+
+        if (day == null) {
+          bgColor = const Color(0xFFF3F4F6);
+          textColor = const Color(0xFF9CA3AF);
+        } else if (isStart || isEnd) {
+          bgColor = const Color(0xFF22C55E);
+          textColor = Colors.white;
+        } else if (isInRange) {
+          bgColor = const Color(0xFFDCFCE7);
+          textColor = const Color(0xFF15803D);
+          border = Border.all(color: const Color(0xFF4ADE80));
+        } else {
+          bgColor = Colors.white;
+          if (isToday) {
+            border = Border.all(color: const Color(0xFF4ADE80));
+          }
+        }
+
+        return GestureDetector(
+          onTap: day == null ? null : () => _handleDateSelect(day),
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(8),
+              border: border,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              day?.day.toString() ?? '',
+              style: TextStyle(fontSize: 12, color: textColor),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
@@ -829,7 +659,6 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
 
 class _WeekdayLabel extends StatelessWidget {
   final String label;
-
   const _WeekdayLabel(this.label);
 
   @override

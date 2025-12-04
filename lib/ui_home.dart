@@ -22,6 +22,22 @@ class _UiHomeState extends State<UiHome> {
 
   int _currentIndex = 0; // 0: 홈, 1: 카드모드, 2: 마이페이지
 
+  @override
+  void initState() {
+    super.initState();
+    _initEsp32HelloThinq();
+  }
+
+  /// 앱을 켰을 때 모든 보드에 "Hello ThinQ" 표시
+  Future<void> _initEsp32HelloThinq() async {
+    try {
+      await Esp32Api.showHelloThinqAll();
+    } catch (e) {
+      // ESP32가 꺼져 있거나 네트워크 문제일 때 앱이 죽지 않도록 예외 무시
+      // print('ESP32 Hello ThinQ error: $e');
+    }
+  }
+
   // 로그인 화면으로 이동
   Future<void> _goToLogin() async {
     final result = await Navigator.push<LoginResult>(
@@ -199,6 +215,14 @@ class _UiHomeState extends State<UiHome> {
                           await _showCardModeConfirmDialog(context);
 
                           if (confirmed == true) {
+                            // LG Regen 모드로 진입할 때 ESP32에 "Hello Regen" 전송
+                            try {
+                              await Esp32Api.showHelloRegenAll();
+                            } catch (e) {
+                              // 네트워크/ESP32 오류는 UI에 영향 없게 무시
+                              // print('ESP32 Hello Regen error: $e');
+                            }
+
                             _openCardMode();
                           }
                         },

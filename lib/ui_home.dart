@@ -13,6 +13,7 @@ class UiHome extends StatefulWidget {
 
 class _UiHomeState extends State<UiHome> {
   bool isLoggedIn = false;
+  int userId = 0;
   String userName = 'Guest';
   String membership = '0';
   String qReward = '0';
@@ -29,6 +30,7 @@ class _UiHomeState extends State<UiHome> {
     if (result != null) {
       setState(() {
         isLoggedIn = true;
+        userId = result.userId;
         userName = result.userName;
         membership = result.membership;
         qReward = result.qReward;
@@ -77,6 +79,7 @@ class _UiHomeState extends State<UiHome> {
   void _handleLogout() {
     setState(() {
       isLoggedIn = false;
+      userId = 0;
       userName = 'Guest';
       membership = '0';
       qReward = '0';
@@ -90,6 +93,7 @@ class _UiHomeState extends State<UiHome> {
       MaterialPageRoute(
         builder: (_) => RegenLoading(
           isLoggedIn: isLoggedIn,
+          userId: userId,
           userName: userName,
           membership: membership,
           qReward: qReward,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/device_models.dart';
+import '../../models/dashboard_model.dart';
 import '../../data/consumables_data.dart';
 import '../consumables/consumables_overview.dart';
 import '../power/power_management.dart';
@@ -7,9 +8,12 @@ import '../mypage/my_page.dart';
 import 'package:dx_projecet_lg_sea/ui/cardmode/common/dialog.dart';
 import 'package:dx_projecet_lg_sea/ui/cardmode/common/notification.dart';
 import 'prayer_schedule_sheet.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class CardMode extends StatefulWidget {
   final bool isLoggedIn;
+  final int userId;
   final String userName;
   final String membership;
   final String qReward;
@@ -18,6 +22,7 @@ class CardMode extends StatefulWidget {
   const CardMode({
     super.key,
     required this.isLoggedIn,
+    required this.userId,
     required this.userName,
     required this.membership,
     required this.qReward,
@@ -36,6 +41,46 @@ class _CardModeState extends State<CardMode> {
   bool ramadanEcoMode = false;
   String activeTab = 'home';
   final int temperature = 32;
+  Device? selectDevice;
+  
+  // 대시보드 데이터(날씨, 사용자 정보 등)
+  DashboardData? _dashboardData;
+  bool _isDataLoading = true; // 데이터 로딩 중인지 여부 확인
+  
+  @override
+  void initState() {
+    super.initState();
+    // 화면이 켜지자마자 데이터 가져옴
+    _fetchDashboardData();
+  }
+  
+  // 백엔드 API 호출
+  Future<void> _fetchDashboardData() async {
+    final userId = widget.userId; // 생성자에서 받은 ID 사용
+    final url = Uri.parse('http://10.0.2.2:8082/api/home/$userId');
+
+    try {
+      final response = await http.get(url);
+
+      if(response.statusCode == 200) {
+        final jsonMap = jsonDecode(response.body);
+
+        if(mounted) {
+          setState(() {
+            _dashboardData = DashboardData.fromJson(jsonMap);
+            _isDataLoading = false; // 로딩 끝
+          });
+        }
+        print("데이터 로딩 성공 : ${_dashboardData?.userName}, 날씨 : ${_dashboardData?.weatherData?.weatherIcon}");
+      } else {
+        print("데이터 로딩 실패 : ${response.statusCode}");
+        if(mounted) setState(() => _isDataLoading = false);
+      }
+    } catch (e) {
+      print("API 에러 : $e");
+      if(mounted) setState(() => _isDataLoading = false);
+    }
+  }
 
   // 디바이스 목록
   final List<Device> devices = allDevices;
@@ -296,8 +341,26 @@ class _CardModeState extends State<CardMode> {
     );
   }
 
-// 인사 + Prayer Schedule + 날씨 카드
+// 인사 + Prayer Schedule + 날씨 카드 (인옥 날씨 여기야)
   Widget _buildGreetingCard() {
+    // 데이터 준비 (데이터 로딩 중일 경우)
+    if(_isDataLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // 데이터가 있으면 사용, 에러인 경우 기존 widget.userName 사용
+    final data = _dashboardData;
+    final weather = data?.weatherData;
+
+    final displayName = data?.userName ?? widget.userName;
+    final regionName = data?.region ?? 'Location';
+    final tempStr = weather?.temperature.toStringAsFixed(1) ?? '--';
+    final humiStr = weather?.humidity.toStringAsFixed(0) ?? '--';
+    final iconStr = weather?.weatherIcon ?? '☁️'; // 백엔드에서 온 이모지
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -318,7 +381,7 @@ class _CardModeState extends State<CardMode> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${widget.userName}님',
+                      '$displayName님', // 예) team3님
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -383,17 +446,15 @@ class _CardModeState extends State<CardMode> {
 
             const SizedBox(height: 12),
 
-            // 날씨 Row
+            // 날씨 Row (백엔드 데이터 연결)
             Row(
               children: [
-                const Text('☁️  '),
+                Text(iconStr, style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 8),
                 Text(
-                  'Kuala Lumpur, $temperature°C · 습도 80%',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black54,
-                  ),
-                ),
+                  '$regionName, $tempStr°C · 습도 $humiStr%',
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                )
               ],
             ),
           ],

@@ -1,3 +1,5 @@
+import 'dart:nativewrappers/_internal/vm/lib/ffi_allocation_patch.dart';
+
 import 'package:flutter/material.dart';
 import '../../models/device_models.dart';
 import '../../models/dashboard_model.dart';
@@ -8,6 +10,7 @@ import '../mypage/my_page.dart';
 import 'package:dx_projecet_lg_sea/ui/cardmode/common/dialog.dart';
 import 'package:dx_projecet_lg_sea/ui/cardmode/common/notification.dart';
 import 'prayer_schedule_sheet.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 // 🔥 ESP32 연동
@@ -36,7 +39,7 @@ class CardMode extends StatefulWidget {
 }
 
 
-class _CardModeState extends State<CardMode> {
+class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
   Device? selectedDevice;
   bool showPrayerSchedule = false;
   bool showNotifications = false;
@@ -48,12 +51,36 @@ class _CardModeState extends State<CardMode> {
   // 대시보드 데이터(날씨, 사용자 정보 등)
   DashboardData? _dashboardData;
   bool _isDataLoading = true; // 데이터 로딩 중인지 여부 확인
+  Timer? _timer; // 타이머 변수
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // 앱 상태 감지기 등록
+
     // 화면이 켜지자마자 데이터 가져옴
     _fetchDashboardData();
+
+    // 1시간마다 자동으로 날씨 데이터 갱신 (기상청 주기에 맞춤)
+    _timer = Timer.periodic(const Duration(minutes: 60), (timer) {
+      print('날씨 정보를 최신으로 갱신합니다.');
+      _fetchDashboardData();
+    });
+  }
+
+  @override
+  void dispose() { // 앱 종료 시 타이머와 감지기 해제
+    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) { // 앱 상태 변화 감지
+    if(state == AppLifecycleState.resumed) {
+      print('앱으로 돌아왔습니다. 최신 데이터를 확인합니다.');
+      _fetchDashboardData(); // 돌아왔을 때 즉시 갱신
+    }
   }
 
   // 백엔드 API 호출
@@ -364,13 +391,6 @@ class _CardModeState extends State<CardMode> {
 
 // 인사 + Prayer Schedule + 날씨 카드
   Widget _buildGreetingCard() {
-    // 데이터 준비 (데이터 로딩 중일 경우)
-    if(_isDataLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
 
     // 데이터가 있으면 사용, 에러인 경우 기존 widget.userName 사용
     final data = _dashboardData;
@@ -378,9 +398,9 @@ class _CardModeState extends State<CardMode> {
 
     final displayName = data?.userName ?? widget.userName;
     final regionName = data?.region ?? 'Location';
-    final tempStr = weather?.temperature.toStringAsFixed(1) ?? '--';
-    final humiStr = weather?.humidity.toStringAsFixed(0) ?? '--';
-    final iconStr = weather?.weatherIcon ?? '☁️'; // 백엔드에서 온 이모지
+    final tempStr = weather?.temperature.toStringAsFixed(1) ?? ' ';
+    final humiStr = weather?.humidity.toStringAsFixed(0) ?? ' ';
+    final iconStr = weather?.weatherIcon ?? '☀️'; // 백엔드에서 온 이모지
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -425,7 +445,6 @@ class _CardModeState extends State<CardMode> {
                 // Prayer 버튼
                 TextButton(
                   onPressed: () {
-                    // 🔴 여기서 더 이상 async/await 사용하지 않음
                     showPrayerScheduleSheet(
                       context,
                       initialRamadanEcoMode: ramadanEcoMode,
@@ -475,7 +494,9 @@ class _CardModeState extends State<CardMode> {
                 Text(iconStr, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 8),
                 Text(
-                  '$regionName, $tempStr°C · 습도 $humiStr%',
+                  _isDataLoading
+                  ? '날씨 정보를 불러오는 중'
+                  : '$regionName, $tempStr°C · 습도 $humiStr%',
                   style: const TextStyle(fontSize: 13, color: Colors.black54),
                 )
               ],

@@ -3,6 +3,8 @@ import '../ui/cardmode/card_mode.dart';
 import '../ui/mypage/my_page.dart';
 import '../services/login.dart';
 import '../ui/loading/regen_loading.dart';
+// 🔥 ESP32 연동
+import 'package:dx_projecet_lg_sea/services/esp32_api.dart';
 
 class UiHome extends StatefulWidget {
   const UiHome({super.key});
@@ -20,7 +22,7 @@ class _UiHomeState extends State<UiHome> {
 
   int _currentIndex = 0; // 0: 홈, 1: 카드모드, 2: 마이페이지
 
-  // 로그인 화면으로 이동해서 결과 받기
+  // 로그인 화면으로 이동
   Future<void> _goToLogin() async {
     final result = await Navigator.push<LoginResult>(
       context,
@@ -38,10 +40,11 @@ class _UiHomeState extends State<UiHome> {
     }
   }
 
+  /// LG Regen 진입 확인 팝업
   Future<bool?> _showCardModeConfirmDialog(BuildContext context) {
     return showDialog<bool>(
       context: context,
-      barrierDismissible: false, // 바깥 클릭으로 닫히지 않게
+      barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
@@ -54,15 +57,11 @@ class _UiHomeState extends State<UiHome> {
           content: const Text('이슬람 문화에 맞춤형 ThinQ 화면으로 이동할까요?'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false); // 실행 X
-              },
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('취소'),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(true); // 실행 YES
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
@@ -75,7 +74,7 @@ class _UiHomeState extends State<UiHome> {
     );
   }
 
-  // 로그아웃
+  /// 로그아웃
   void _handleLogout() {
     setState(() {
       isLoggedIn = false;
@@ -86,7 +85,7 @@ class _UiHomeState extends State<UiHome> {
     });
   }
 
-  // 🔥 LG Regen / 카드모드 진입전 regen_loading
+  /// 🟢 카드모드로 이동 (Regen Loading → CardMode)
   void _openCardMode() {
     Navigator.push(
       context,
@@ -97,7 +96,7 @@ class _UiHomeState extends State<UiHome> {
           userName: userName,
           membership: membership,
           qReward: qReward,
-          onLogout: _handleLogout, // CardMode 안에서 로그아웃 시 UiHome 상태 갱신
+          onLogout: _handleLogout,
         ),
       ),
     );
@@ -115,7 +114,7 @@ class _UiHomeState extends State<UiHome> {
         onTap: (idx) {
           setState(() => _currentIndex = idx);
 
-          // 카드모드 탭을 눌렀을 때 실제 CardMode 화면으로 이동
+          // 카드모드 탭 클릭 시 실제 CardMode로 진입
           if (idx == 1) {
             _openCardMode();
           }
@@ -138,18 +137,15 @@ class _UiHomeState extends State<UiHome> {
     );
   }
 
-  /// 탭별로 다른 화면 렌더링
+  /// 탭별 화면
   Widget _buildBody() {
     if (_currentIndex == 0) {
-      // 🔥 진짜 홈 화면
       return _buildHomeContent();
     } else if (_currentIndex == 1) {
-      // 카드모드 탭은 실제 화면은 push 로 띄우고 여기선 안내만
       return const Center(
         child: Text('카드모드는 하단 탭을 통해 진입합니다.'),
       );
     } else {
-      // 마이페이지 탭
       return MyPage(
         isLoggedIn: isLoggedIn,
         userName: userName,
@@ -166,7 +162,7 @@ class _UiHomeState extends State<UiHome> {
     }
   }
 
-  /// 🏠 홈 화면 레이아웃 (LG Regen 버튼 + 3D홈뷰 + 하단 이미지)
+  /// 홈 화면
   Widget _buildHomeContent() {
     return SingleChildScrollView(
       child: Column(
@@ -182,7 +178,6 @@ class _UiHomeState extends State<UiHome> {
             padding: const EdgeInsets.fromLTRB(20, 55, 30, 30),
             child: Column(
               children: [
-                // 상단 텍스트 + 버튼
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -195,14 +190,16 @@ class _UiHomeState extends State<UiHome> {
                       ),
                     ),
 
-                    // === LG Regen 버튼 ===
+                    /// LG Regen 버튼
                     Transform.translate(
                       offset: const Offset(0, 15),
                       child: GestureDetector(
                         onTap: () async {
-                          final confirmed = await _showCardModeConfirmDialog(context);
+                          final confirmed =
+                          await _showCardModeConfirmDialog(context);
+
                           if (confirmed == true) {
-                            _openCardMode();// ✅ 알림창에서 사용자가 확인 후 CardMode 열기
+                            _openCardMode();
                           }
                         },
                         child: Container(
@@ -230,7 +227,6 @@ class _UiHomeState extends State<UiHome> {
 
                 const SizedBox(height: 30),
 
-                // 3D 홈뷰 카드
                 const _ThreeDHomeCard(),
               ],
             ),
@@ -244,14 +240,13 @@ class _UiHomeState extends State<UiHome> {
           ),
 
           const SizedBox(height: 20),
-          // TODO: 다른 카드들 추가
         ],
       ),
     );
   }
 }
 
-/// 👇 보조 위젯: 3D 홈뷰 카드
+/// 3D 홈뷰 카드
 class _ThreeDHomeCard extends StatelessWidget {
   const _ThreeDHomeCard({super.key});
 

@@ -45,6 +45,10 @@ class Device {
   final String iconEmoji;
   final String? iconImage;
 
+  // 시간당 평균 소비전력(W)
+  // 전력 탭(today / month kWh, 예상 요금)에 사용할 값
+  final double averagePowerW;
+
   // 카드/상태용
   bool active;
   String status;
@@ -59,6 +63,7 @@ class Device {
     required this.name,
     required this.iconEmoji,
     this.iconImage,
+    required this.averagePowerW,
     this.active = true,
     this.status = '작동 중',
     this.cardColor = const Color(0xFFF3F4F6),

@@ -13,6 +13,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 // 🔥 ESP32 연동
 import 'package:dx_projecet_lg_sea/services/esp32_api.dart';
+// 전력 연동
+import 'package:dx_projecet_lg_sea/services/power_usage_manager.dart';
+
 
 class CardMode extends StatefulWidget {
   final bool isLoggedIn;
@@ -58,6 +61,12 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
 
     // 화면이 켜지자마자 데이터 가져옴
     _fetchDashboardData();
+
+    _powerPage = PowerManagement(userId: widget.userId);
+    // 🔋 전력 사용량 매니저에 디바이스 등록
+    for (final d in devices) {
+      PowerUsageManager.instance.registerDevice(d);
+    }
 
     // 1시간마다 자동으로 날씨 데이터 갱신 (기상청 주기에 맞춤)
     _timer = Timer.periodic(const Duration(minutes: 60), (timer) {
@@ -111,6 +120,7 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
 
   // 디바이스 목록
   final List<Device> devices = allDevices;
+  late final PowerManagement _powerPage;  // 전력 탭 페이지 캐싱
 
   // JS handleDeviceStatusChange 대응
   void _handleDeviceStatusChange(String deviceId, bool isOn) {
@@ -164,6 +174,13 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
       }
     }
     // OFF 시에는 UI만 Off로 두고, 별도 텍스트는 보내지 않음
+
+    // ⚡ 전력 사용량 매니저에도 ON/OFF 반영 (❗ 2개 인자만)
+    try {
+      PowerUsageManager.instance.setDevicePower(deviceId, isOn);
+    } catch (e) {
+      debugPrint('setDevicePower 실패: $e');
+    }
   }
 
   @override
@@ -238,7 +255,7 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
   // activeTab 에 따라 다른 화면
   Widget _buildByActiveTab() {
     if (activeTab == 'power') {
-      return const PowerManagement();
+      return _powerPage;
     } else if (activeTab == 'status') {
       return ConsumablesOverviewScreen(devices: devices);
     } else if (activeTab == 'my') {

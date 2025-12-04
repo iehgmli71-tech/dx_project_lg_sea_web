@@ -14,6 +14,7 @@ final List<Device> allDevices = [
     status: 'Off',
     detail: null,
     active: false,
+    averagePowerW: 800,   // 🔹 0.8 kW 정도
     consumables: [
       Consumable(
         name: '배수 필터',
@@ -42,6 +43,7 @@ final List<Device> allDevices = [
     status: 'Off',
     detail: null,
     active: false,
+    averagePowerW: 2000,  // 🔹 2.0 kW 정도
     consumables: [
       Consumable(
         name: '먼지 필터',
@@ -51,7 +53,7 @@ final List<Device> allDevices = [
         nextChange: '2025년 5월 예정',
         price: '₩12,000',
       ),
-      // 교체 불가 파트 예시 (버튼 안 뜨게 하려면 이름을 여기에서 사용)
+      // 교체 불가 파트 예시
       Consumable(
         name: '히터',
         percentage: 90,
@@ -71,6 +73,7 @@ final List<Device> allDevices = [
     status: '34°F',
     detail: null,
     active: true,
+    averagePowerW: 150,   // 🔹 0.15 kW (24시간 평균)
     consumables: [
       Consumable(
         name: '탈취 필터',
@@ -107,6 +110,7 @@ final List<Device> allDevices = [
     status: 'Off',
     detail: null,
     active: false,
+    averagePowerW: 1200,  // 🔹 1.2 kW 정도
     consumables: [
       Consumable(
         name: '에어 필터',

@@ -7,9 +7,16 @@ import 'package:http/http.dart' as http;
 
 import '../../models/postpaid_models.dart'; // 방금 만든 모델
 
+import 'dart:async'; // Timer 사용
+import 'package:dx_projecet_lg_sea/services/power_usage_manager.dart';
 
 class PowerManagement extends StatefulWidget {
-  const PowerManagement({Key? key}) : super(key: key);
+  final int userId;
+
+  const PowerManagement({
+    Key? key,
+    required this.userId,
+  }) : super(key: key);
 
   @override
   State<PowerManagement> createState() => _PowerManagementState();
@@ -38,16 +45,70 @@ class _PowerManagementState extends State<PowerManagement> {
   bool _isLoadingPostpaid = false;       // 로딩 중 여부
   String? _postpaidError;                // 에러 메시지(있으면)
 
+  Timer? _timer; // 타이머 추가
+
+  void _startUsageTimer() {
+    // 혹시 이전에 타이머가 돌아가고 있었다면 정리
+    _timer?.cancel();
+
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      setState(() {
+        PowerUsageManager.instance.tick();  // ✅ 30초마다 today/month kWh 누적
+      });
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    _loadPostpaidDashboard(); // 화면 처음 켜질 때 후불 대시보드 로드
+
+    // 🔹 유저별(로그인한 userId 기준) 사용량 복구
+    PowerUsageManager.instance.init(widget.userId).then((_) {
+      if (mounted) {
+        setState(() {});  // 복구된 today/month kWh를 화면에 반영
+      }
+    });
+
+    // 🔹 선불/후불 대시보드 가져오기
+    _loadPrepaidDashboard();
+    _loadPostpaidDashboard();
+
+    // 🔹 30초마다 tick() + setState (이 안에서 Timer.periodic 돌도록 구현)
+    _startUsageTimer();
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _tokenInputController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPrepaidDashboard() async {
+    final userId = widget.userId;
+    final uri = Uri.parse(
+      'http://10.0.2.2:8082/api/users/$userId/prepaid-dashboard',
+    );
+
+    try {
+      final resp = await http.get(uri);
+
+      if (resp.statusCode == 200) {
+        final data = json.decode(resp.body) as Map<String, dynamic>;
+        setState(() {
+          savedTotalToken =
+              (data['totalTokenKwh'] as num?)?.toDouble() ?? 0.0;
+          savedUsedToken =
+              (data['usedTokenKwh'] as num?)?.toDouble() ?? 0.0;
+        });
+      } else {
+        // 에러는 로그만 찍고, UI는 그냥 0 토큰 카드 유지
+        print(
+            'prepaid-dashboard API error: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      print('prepaid-dashboard network error: $e');
+    }
   }
 
   Future<void> _loadPostpaidDashboard() async {
@@ -56,7 +117,7 @@ class _PowerManagementState extends State<PowerManagement> {
       _postpaidError = null;
     });
 
-    const userId = 1; // TODO: 로그인 연동되면 실제 유저 id로 교체
+    final userId = widget.userId; // TODO: 로그인 연동되면 실제 유저 id로 교체
 
     // 안드로이드 에뮬레이터면 10.0.2.2, iOS 시뮬레이터면 localhost
     final uri = Uri.parse(
@@ -98,7 +159,7 @@ class _PowerManagementState extends State<PowerManagement> {
       _isSavingPrepaid = true;
     });
 
-    const userId = 1; // TODO: 나중에 로그인 연동 후 실제 userId로 교체
+    final userId = widget.userId; // TODO: 나중에 로그인 연동 후 실제 userId로 교체
     final uri = Uri.parse(
       'http://10.0.2.2:8082/api/users/$userId/prepaid-topup',
     );
@@ -179,8 +240,30 @@ class _PowerManagementState extends State<PowerManagement> {
 
   @override
   Widget build(BuildContext context) {
-    final remainingToken = (savedTotalToken - savedUsedToken).clamp(0, double.infinity);
-    final bills = _postpaidDashboard?.bills ?? [];  // 🔹 청구서 리스트
+    // 전력 사용량 매니저에서 값 읽기
+    final mgr   = PowerUsageManager.instance;
+    final today = mgr.todayKwh;               // 오늘 사용량 (kWh)
+    final month = mgr.monthKwh;               // 이번달 사용량 (kWh)
+
+    // 이번 달 사용량을 선불 모드의 "사용 토큰"으로 사용
+    final double usedThisMonth = month;
+
+    // 잔여 토큰 = 총 토큰 - 이번 달 사용량
+    final double remainingToken =
+    (savedTotalToken - usedThisMonth).clamp(0, double.infinity);
+
+    // 인도네시아 하루 평균 29kWh 기준 예상일수 (소수점 버림)
+    const double dailyAverageKwh = 29.0;
+    final int expectedDays = remainingToken <= 0
+        ? 0
+        : (remainingToken / dailyAverageKwh).floor();
+
+    // 후불용: 이번 달 예상 요금
+    final bill  = mgr.estimatedMonthlyBillIdr;
+    final effectiveBill = _postpaidDashboard?.expectedAmount ?? bill;
+
+    // 후불 청구서 리스트
+    final bills = _postpaidDashboard?.bills ?? [];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -317,7 +400,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                               size: const Size(double.infinity, 200),
                                               painter: _TokenGaugePainter(
                                                 total: savedTotalToken,
-                                                used: savedUsedToken,
+                                                used: usedThisMonth, // 이번 달 사용량 기준으로 게이지 감소
                                               ),
                                             ),
                                             Positioned(
@@ -329,8 +412,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                                     MainAxisAlignment.center,
                                                     children: [
                                                       Text(
-                                                        remainingToken
-                                                            .toStringAsFixed(0),
+                                                        remainingToken.toStringAsFixed(2), // 소수점 둘째 자리까지
                                                         style: const TextStyle(
                                                           fontSize: 28,
                                                           fontWeight:
@@ -371,21 +453,20 @@ class _PowerManagementState extends State<PowerManagement> {
                                             child: _TokenInfoItem(
                                               label: '총 토큰',
                                               value:
-                                              '${savedTotalToken.toStringAsFixed(0)} kWh',
+                                              '${savedTotalToken.toStringAsFixed(2)} kWh',
                                             ),
                                           ),
                                           Expanded(
                                             child: _TokenInfoItem(
                                               label: '사용 토큰',
-                                              value:
-                                              '${savedUsedToken.toStringAsFixed(0)} kWh',
+                                              // 🔹 이번 달 사용량을 사용 토큰으로 표시, 소수점 2자리
+                                              value: '${usedThisMonth.toStringAsFixed(2)} kWh',
                                             ),
                                           ),
                                           Expanded(
                                             child: _TokenInfoItem(
                                               label: '예상 기간',
-                                              value:
-                                              '${remainingToken <= 0 ? 0 : (remainingToken / 42).ceil()} 일',
+                                              value: '$expectedDays 일',
                                             ),
                                           ),
                                         ],
@@ -503,7 +584,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     child: _SmallStatCard(
                                       icon: Icons.trending_down,
                                       label: '오늘 사용량',
-                                      value: '42',
+                                      value: today.toStringAsFixed(2),   // 매니저 값
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -511,7 +592,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     child: _SmallStatCard(
                                       icon: Icons.bolt,
                                       label: '이번 달 사용량',
-                                      value: '850',
+                                      value: month.toStringAsFixed(2),   // 매니저 값
                                     ),
                                   ),
                                 ],
@@ -593,10 +674,9 @@ class _PowerManagementState extends State<PowerManagement> {
                                     ),
                                     SizedBox(height: 12),
                                     // 예상 요금: 서버 데이터 적용
+
                                     Text(
-                                      _postpaidDashboard == null
-                                          ? 'Rp -'
-                                          : 'Rp ${_postpaidDashboard!.expectedAmount.toStringAsFixed(0)}',
+                                      'Rp ${effectiveBill.toStringAsFixed(0)}',
                                       style: const TextStyle(
                                         fontSize: 32,
                                         fontWeight: FontWeight.bold,
@@ -624,8 +704,8 @@ class _PowerManagementState extends State<PowerManagement> {
                                       icon: Icons.trending_down,
                                       label: '오늘 사용량',
                                       value: _postpaidDashboard == null
-                                          ? '-'
-                                          : _postpaidDashboard!.todayUsageKwh.toStringAsFixed(0),
+                                          ? today.toStringAsFixed(2)
+                                          : _postpaidDashboard!.todayUsageKwh.toStringAsFixed(2),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -634,8 +714,8 @@ class _PowerManagementState extends State<PowerManagement> {
                                       icon: Icons.bolt,
                                       label: '이번 달 사용량',
                                       value: _postpaidDashboard == null
-                                          ? '-'
-                                          : _postpaidDashboard!.monthUsageKwh.toStringAsFixed(0),
+                                          ? month.toStringAsFixed(2)
+                                          : _postpaidDashboard!.monthUsageKwh.toStringAsFixed(2),
                                     ),
                                   ),
                                 ],

@@ -387,10 +387,18 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() => isOn = !isOn);
-                    widget.onPowerChanged?.call(isOn);
-                  },
+                    onPressed: () {
+                      setState(() {
+                        isOn = !isOn;
+
+                        // 🔥 전원 OFF 시 선택된 세탁 코스 초기화
+                        if (!isOn) {
+                          selectedCourse = null; // ← 네가 실제 사용하는 선택 변수명으로 변경
+                        }
+                      });
+
+                      widget.onPowerChanged?.call(isOn);
+                    },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
                     foregroundColor: isOn ? Colors.white : Colors.grey.shade700,
@@ -602,8 +610,8 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
               const SizedBox(height: 16),
 
               // -----------------------------------------------------
-// 🔥 에너지·물 사용 최적화
-// -----------------------------------------------------
+              // 🔥 에너지·물 사용 최적화
+              // -----------------------------------------------------
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -672,9 +680,9 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
               ),
               const SizedBox(height: 16),
 
-// -----------------------------------------------------
-// 🔥 자동 절약 알림 팝업
-// -----------------------------------------------------
+              // -----------------------------------------------------
+              // 🔥 자동 절약 알림 팝업
+              // -----------------------------------------------------
               if (showAutoSaveAlert)
                 AnimatedScale(
                   scale: 1,
@@ -805,28 +813,28 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                 children: [
                   const Text('💡', style: TextStyle(fontSize: 18)),
                   const SizedBox(width: 8),
-              Expanded(
-                child:Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '특수 기능',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF6B7280),
+                  Expanded(
+                    child:Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '특수 기능',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF6B7280),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        detail.special!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF047857),
+                        const SizedBox(height: 2),
+                        Text(
+                          detail.special!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF047857),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                 ),
                 ],
               ),
             ),
@@ -1357,7 +1365,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                        child: _deviceImage(widget.device),
+                      child: _deviceImage(widget.device),
                     ),
                   ),
                   const SizedBox(width: 12),

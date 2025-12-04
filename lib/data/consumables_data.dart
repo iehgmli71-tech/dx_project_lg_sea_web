@@ -117,7 +117,7 @@ final List<Device> allDevices = [
         price: '₩14,000',
       ),
       Consumable(
-        name: '드럼',
+        name: '프레온 가스',
         percentage: 92,
         color: Colors.green,
         lastChanged: '2024년 7월 12일',

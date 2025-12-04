@@ -4,11 +4,13 @@ import 'package:http/http.dart' as http; // 서버 통신용
 
 /// 로그인 성공 시 UiHome 으로 넘겨줄 정보
 class LoginResult {
+  final int userId;
   final String userName;
   final String membership;
   final String qReward;
 
   const LoginResult({
+    required this.userId,
     required this.userName,
     required this.membership,
     required this.qReward,
@@ -73,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
           //서버에서 받은 닉네임을 UiHome으로 전달
           // 멤버십이나 포인트는 아직 DB에 없으니 임시값 유지
           final result = LoginResult(
+              userId: userData['id'] as int, // DB의 id
               userName: userData['name'] ?? 'User', // DB의 이름 사용
             // 아래 두 개는 나중에 DB에 추가하면 바꿀 수 있음
               membership: 'Gold',

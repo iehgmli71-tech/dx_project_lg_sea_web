@@ -4,6 +4,7 @@ import 'package:dx_projecet_lg_sea/ui/cardmode/card_mode.dart';
 
 class RegenLoading extends StatefulWidget {
   final bool isLoggedIn;
+  final int userId;
   final String userName;
   final String membership;
   final String qReward;
@@ -12,6 +13,7 @@ class RegenLoading extends StatefulWidget {
   const RegenLoading({
     super.key,
     required this.isLoggedIn,
+    required this.userId,
     required this.userName,
     required this.membership,
     required this.qReward,
@@ -58,11 +60,12 @@ class _RegenLoadingState extends State<RegenLoading>
         context,
         MaterialPageRoute(
           builder: (_) => CardMode(
-            isLoggedIn: widget.isLoggedIn,
+            isLoggedIn: true,
+            userId: widget.userId,
             userName: widget.userName,
             membership: widget.membership,
             qReward: widget.qReward,
-            onLogout: widget.onLogout,
+            onLogout: widget.onLogout, //_handleLogout,
           ),
         ),
       );

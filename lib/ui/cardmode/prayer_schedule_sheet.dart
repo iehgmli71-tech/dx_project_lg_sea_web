@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// ESP32 연동
+import 'package:dx_projecet_lg_sea/services/esp32_api.dart';
 
 /// 카드모드에서 호출해서 쓰는 헬퍼 함수
 Future<void> showPrayerScheduleSheet(
@@ -88,7 +90,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     await prefs.setBool('fridgeDoorAlert', fridgeDoorAlert);
   }
 
-  /// React 코드와 동일한 로직: 오늘~2026.04.30까지 캘린더 생성
+  /// 오늘 ~ 2026.04.30까지 캘린더 생성
   List<_MonthData> _generateCalendar() {
     final today = DateTime.now();
     final todayMidnight = DateTime(today.year, today.month, today.day);
@@ -139,9 +141,10 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     return months;
   }
 
+  /// Quiet Home Mode 카드 탭
   void _handleQuietModeActivate() {
-    // 둘 다 켜져 있으면 둘 다 끄고, 아니면 둘 다 켬
     setState(() {
+      // 둘 다 켜져 있으면 둘 다 끄고, 아니면 둘 다 켬
       if (washerDryerDelay && fridgeDoorAlert) {
         washerDryerDelay = false;
         fridgeDoorAlert = false;
@@ -153,6 +156,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     _saveQuietModeSettings();
   }
 
+  /// 라마단 토글
   void _handleRamadanToggle() {
     setState(() {
       if (!ramadanEcoMode) {
@@ -166,7 +170,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         ramadanEcoMode = false;
         startDate = null;
         endDate = null;
-        widget.onRamadanModeChange(false);  // 🔥 CardMode에 false 전달
+        widget.onRamadanModeChange(false);
       }
     });
   }
@@ -179,11 +183,9 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         selectingStartDate = false;
       } else {
         if (startDate != null &&
-            date.isBefore(DateTime(
-              startDate!.year,
-              startDate!.month,
-              startDate!.day,
-            ))) {
+            date.isBefore(
+              DateTime(startDate!.year, startDate!.month, startDate!.day),
+            )) {
           // 종료일이 시작일보다 앞이면 다시 시작일로 사용
           startDate = date;
           endDate = null;
@@ -195,7 +197,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     });
   }
 
-  void _handleCalendarConfirm() {
+  /// 달력에서 “설정 완료” 눌렀을 때
+  Future<void> _handleCalendarConfirm() async {
     if (startDate != null && endDate != null) {
       setState(() {
         ramadanEcoMode = true;
@@ -204,12 +207,12 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         showCalendar = false;
         selectingStartDate = true;
       });
-      // 🔥 CardMode 상태 갱신
+
+      // CardMode 상단 배너 등에 반영
       widget.onRamadanModeChange(true);
 
-      // 시트 닫고 싶으면 여기서 pop
-      Navigator.of(context).pop();
-
+      // 라마단 모드 시작 → 하드웨어에 전송
+      await Esp32Api.showRamadanModeAll();
     }
   }
 
@@ -228,194 +231,120 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         top: false,
         child: Stack(
           children: [
-            // 메인 시트 내용
-            Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                // 상단 핸들
-                const SizedBox(height: 8),
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // 스크롤 영역
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 헤더
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            /// 1) 메인 시트 내용 (Quiet 카드 + 기타들)
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 🔇 Quiet Home 카드 + 적용 버튼 전체 섹션
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // 상단 Quiet 타이틀 + 전체 토글
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  alignment: Alignment.center,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: const [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.nightlight_round,
+                                            color: Color(0xFF16A34A),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Quiet Home Mode 시행할까요?',
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF111827),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 8),
+                                      Padding(
+                                        padding: EdgeInsets.only(left: 26),
+                                        child: Text(
+                                          '기도 시간 동안 세탁기/건조기 · 냉장고 알림을 최소화합니다',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF6B7280),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(width: 16),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: const [
-                                    Text(
-                                      'Prayer Schedule',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF111827),
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      '조용한 시간 설정',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF6B7280),
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(width: 12),
+                                _buildSwitch(
+                                  (washerDryerDelay && fridgeDoorAlert),
+                                      (value) {
+                                    setState(() {
+                                      washerDryerDelay = value;
+                                      fridgeDoorAlert = value;
+                                    });
+                                    _saveQuietModeSettings();
+                                  },
                                 ),
                               ],
                             ),
-                            IconButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: const Icon(Icons.close),
+
+                            const SizedBox(height: 20),
+
+                            // 개별 토글들
+                            Column(
+                              children: [
+                                _toggleTile(
+                                  icon: Icons.local_laundry_service_outlined,
+                                  title: '세탁기/건조기 완료 알림 지연',
+                                  subtitle: '소리 없이 앱 알림만',
+                                  value: washerDryerDelay,
+                                  onChanged: (v) {
+                                    setState(() => washerDryerDelay = v);
+                                    _saveQuietModeSettings();
+                                  },
+                                ),
+                                const SizedBox(height: 8),
+                                _toggleTile(
+                                  icon: Icons.kitchen_outlined,
+                                  title: '냉장고 문 열림 알림 최소화',
+                                  subtitle: '소리 없이 앱 알림만',
+                                  value: fridgeDoorAlert,
+                                  onChanged: (v) {
+                                    setState(() => fridgeDoorAlert = v);
+                                    _saveQuietModeSettings();
+                                  },
+                                ),
+                                const SizedBox(height: 8),
+                                _ramadanTile(), // 여기서 showCalendar = true 로 켜줌
+                              ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                      ),
 
-                        // Quiet Home Mode 카드
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0F2F1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFFBBF7D0),
-                            ),
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: _handleQuietModeActivate,
-                            child: Padding(
-                              padding: const EdgeInsets.all(18),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // 왼쪽 🌙 + 텍스트들
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: const [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.nightlight_round,
-                                              color: Color(0xFF16A34A),
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Quiet Home Mode 시행할까요?',
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF111827),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 8),
-                                        Padding(
-                                          padding: EdgeInsets.only(left: 26),
-                                          child: Text(
-                                            '기도 시간 동안 모든 알림을 최소화합니다',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF6B7280),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const SizedBox(width: 12),
-
-                                  // 오른쪽 토글 스위치
-                                  _buildSwitch(
-                                    (washerDryerDelay && fridgeDoorAlert),
-                                        (value) {
-                                      setState(() {
-                                        if (value) {
-                                          washerDryerDelay = true;
-                                          fridgeDoorAlert = true;
-                                        } else {
-                                          washerDryerDelay = false;
-                                          fridgeDoorAlert = false;
-                                        }
-                                      });
-                                      _saveQuietModeSettings();
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // 토글들
-                        Column(
-                          children: [
-                            _toggleTile(
-                              icon: Icons.local_laundry_service_outlined,
-                              title: '세탁기/건조기 완료 알림 지연',
-                              subtitle: '소리 없이 앱 알림만',
-                              value: washerDryerDelay,
-                              onChanged: (v) {
-                                setState(() {
-                                  washerDryerDelay = v;
-                                });
-                                _saveQuietModeSettings(); // 토글 바뀔 때 바로 저장
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            _toggleTile(
-                              icon: Icons.kitchen_outlined,
-                              title: '냉장고 문 열림 알림 최소화',
-                              subtitle: '소리 없이 앱 알림만',
-                              value: fridgeDoorAlert,
-                              onChanged: (v) {
-                                setState(() {
-                                  fridgeDoorAlert = v; // 🔥 여기 fridgeDoorAlert 로 수정
-                                });
-                                _saveQuietModeSettings();
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            _ramadanTile(),
-                          ],
-                        ),
-                      ],
-                    ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
-            // 달력 오버레이 (맨 위에 겹치게)
+            /// 2) 달력 오버레이 (맨 위에 겹치게) — **Stack의 두 번째 자식**
             if (showCalendar) _buildCalendarOverlay(context),
           ],
         ),
@@ -432,47 +361,36 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     required ValueChanged<bool> onChanged,
   }) {
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: const Color(0xFF374151)),
-          ),
+          Icon(icon, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF111827),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
+                Text(title, style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
-                  ),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),
           ),
-          _buildSwitch(value, onChanged),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: Colors.green.shade300,
+            inactiveThumbColor: Colors.grey.shade300,
+            inactiveTrackColor: Colors.grey.shade400,
+          ),
         ],
       ),
     );
@@ -592,8 +510,9 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                 height: MediaQuery.of(context).size.height * 0.8,
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -610,23 +529,20 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                     ),
                     const SizedBox(height: 8),
                     Padding(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: const [
-                              Text(
-                                'Prayer Schedule',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF111827),
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                            ],
+                          const Text(
+                            'Prayer Schedule',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF111827),
+                            ),
                           ),
                           IconButton(
                             onPressed: () {
@@ -640,7 +556,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
                         selectingStartDate
                             ? '🗓️ 시작 날짜를 선택하세요'
@@ -656,7 +573,9 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                     // 요일 헤더
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 4),
+                        horizontal: 24,
+                        vertical: 4,
+                      ),
                       child: Row(
                         children: const [
                           _WeekdayLabel('일'),
@@ -681,7 +600,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                           itemBuilder: (context, index) {
                             final month = calendarMonths[index];
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
+                              padding:
+                              const EdgeInsets.only(bottom: 12.0),
                               child: Column(
                                 children: [
                                   Text(
@@ -741,8 +661,9 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                                         textColor =
                                         const Color(0xFF15803D);
                                         border = Border.all(
-                                            color:
-                                            const Color(0xFF4ADE80));
+                                          color:
+                                          const Color(0xFF4ADE80),
+                                        );
                                       } else {
                                         bgColor = Colors.white;
                                         textColor =
@@ -752,7 +673,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                                       return GestureDetector(
                                         onTap: day == null
                                             ? null
-                                            : () => _handleDateSelect(day),
+                                            : () =>
+                                            _handleDateSelect(day),
                                         child: Container(
                                           decoration: BoxDecoration(
                                             color: bgColor,
@@ -761,8 +683,10 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                                             border: border ??
                                                 (isToday
                                                     ? Border.all(
-                                                  color: const Color(
-                                                      0xFF4ADE80),
+                                                  color:
+                                                  const Color(
+                                                    0xFF4ADE80,
+                                                  ),
                                                 )
                                                     : null),
                                           ),
@@ -788,7 +712,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
 
                     // 선택 정보 & 확인 버튼
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                      padding: const EdgeInsets.fromLTRB(
+                          24, 8, 24, 16),
                       child: Column(
                         children: [
                           Row(
@@ -811,7 +736,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                                     startDate != null
                                         ? _formatDate(startDate!)
                                         : '-',
-                                    style: const TextStyle(fontSize: 12),
+                                    style: const TextStyle(
+                                        fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -838,7 +764,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                                     endDate != null
                                         ? _formatDate(endDate!)
                                         : '-',
-                                    style: const TextStyle(fontSize: 12),
+                                    style: const TextStyle(
+                                        fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -849,16 +776,19 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                             width: double.infinity,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: (startDate != null &&
+                                backgroundColor:
+                                (startDate != null &&
                                     endDate != null)
                                     ? const Color(0xFF22C55E)
                                     : const Color(0xFFE5E7EB),
-                                foregroundColor: (startDate != null &&
+                                foregroundColor:
+                                (startDate != null &&
                                     endDate != null)
                                     ? Colors.white
                                     : const Color(0xFF9CA3AF),
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 12),
+                                  vertical: 12,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius:
                                   BorderRadius.circular(16),
@@ -866,7 +796,9 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                               ),
                               onPressed: (startDate != null &&
                                   endDate != null)
-                                  ? _handleCalendarConfirm
+                                  ? () async {
+                                await _handleCalendarConfirm();
+                              }
                                   : null,
                               child: const Text(
                                 '라마단 절전모드 설정 완료',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dx_projecet_lg_sea/models/device_models.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// CardMode에서 쓰는 디바이스 모델
 
@@ -249,6 +250,28 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
   void initState() {
     super.initState();
     isOn = widget.initialOn;
+    _loadSelectedCourse();
+  }
+  /// 기기별로 고유 저장 키 (여러 세탁기 사용 대비)
+  String get _courseKey => 'washing_course_${widget.device.id}';
+
+  /// 🔧 SharedPreferences에서 선택된 코스 로드
+  Future<void> _loadSelectedCourse() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedCourse = prefs.getString(_courseKey);
+    });
+  }
+
+  /// 🔧 선택된 코스 저장
+  Future<void> _saveSelectedCourse() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (selectedCourse != null) {
+      await prefs.setString(_courseKey, selectedCourse!);
+    } else {
+      await prefs.remove(_courseKey);
+    }
   }
 
   void _handleCourseSelect(String course) {
@@ -271,6 +294,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
         selectedCourse = pendingCourse;
         showConfirmPopup = false;
       });
+      _saveSelectedCourse();
 
       // 코스 시작 시 전원 ON 처리
       if (!isOn) {
@@ -938,10 +962,30 @@ class _DryerSheetState extends State<DryerSheet> {
   bool ecoMode = false;
   int timerMinutes = 45;
 
+  String? selectedCourse;
+
   @override
   void initState() {
     super.initState();
     isOn = widget.initialOn;
+    _loadSelectedCourse();
+  }
+  String get _courseKey => 'dryer_course_${widget.device.id}';
+
+  Future<void> _loadSelectedCourse() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedCourse = prefs.getString(_courseKey);
+    });
+  }
+
+  Future<void> _saveSelectedCourse() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (selectedCourse != null) {
+      await prefs.setString(_courseKey, selectedCourse!);
+    } else {
+      await prefs.remove(_courseKey);
+    }
   }
 
   final List<String> dryLevels = ['약', '중간', '강'];
@@ -1061,8 +1105,10 @@ class _DryerSheetState extends State<DryerSheet> {
                           ),
                           elevation: selected ? 2 : 0,
                         ),
-                        onPressed: () =>
-                            setState(() => dryLevel = level),
+                        onPressed: () {
+                          setState(() => dryLevel = level);
+                          _saveSelectedCourse();      // 저장 위치
+                        },
                         child: Text(level),
                       );
                     }).toList(),
@@ -1243,7 +1289,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
 
   // 온도 상태
   int freezerTemp = -18; // -23 ~ -15
-  int fridgeTemp = 4;    // 1 ~ 7
+  int fridgeTemp = 5;    // 1 ~ 7
 
   // Halal zone / Boost / 알림 / 보호모드
   bool showHalalZone = false;
@@ -1252,11 +1298,28 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
   bool tempAlert = true;
   bool protectionMode = true;
 
+
   @override
   void initState() {
     super.initState();
     isOn = widget.initialOn;
+    _loadBoostMode();
   }
+
+  String get _boostKey => 'boost_mode_${widget.device.id}';
+
+  Future<void> _loadBoostMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      iftarBoostMode = prefs.getBool(_boostKey) ?? false;
+    });
+  }
+
+  Future<void> _saveBoostMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_boostKey, iftarBoostMode);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1972,6 +2035,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                       activeColor: const Color(0xFF22C55E),
                       onChanged: (val) {
                         setState(() => iftarBoostMode = val);
+                        _saveBoostMode();
                       },
                     ),
                   ],
@@ -2306,11 +2370,31 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
   bool showMoreModes = false;
   String? selectedSpecialMode;
 
+  String get _acSpecialModeKey => 'ac_special_mode_${widget.device.id}';
+
   @override
   void initState() {
     super.initState();
     isOn = widget.initialOn;
+    _loadSpecialMode();
   }
+  Future<void> _loadSpecialMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedSpecialMode = prefs.getString(_acSpecialModeKey);
+    });
+  }
+
+  /// 선택된 특수 모드 저장
+  Future<void> _saveSpecialMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (selectedSpecialMode != null) {
+      await prefs.setString(_acSpecialModeKey, selectedSpecialMode!);
+    } else {
+      await prefs.remove(_acSpecialModeKey);
+    }
+  }
+
 
   final Map<String, Map<String, String>> specialModes = {
     'Prayer Mode': {
@@ -2359,15 +2443,33 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
 
   void _selectSpecialMode(String name) {
     setState(() {
-      selectedSpecialMode = name;
-      mode = '자동';
-      final tempText = specialModes[name]!['temp']!;
-      final match = RegExp(r'(\d+)').firstMatch(tempText);
-      if (match != null) {
-        temperature = int.parse(match.group(1)!);
+      // 🔥 같은 모드를 다시 누르면 해제되도록
+      if (selectedSpecialMode == name) {
+        selectedSpecialMode = null;
+
+        // 모드 해제 시 초기화 원하는 값 유지하면 아래 추가 가능
+        // mode = '자동';
+        // temperature = 기본값;
+
+      } else {
+        selectedSpecialMode = name;
+
+        // 기존 에어컨 로직 유지
+        mode = '자동';
+
+        final tempText = specialModes[name]!['temp']!;
+        final match = RegExp(r'(\d+)').firstMatch(tempText);
+        if (match != null) {
+          temperature = int.parse(match.group(1)!);
+        }
       }
     });
+
+    // 🔥 상태가 변경될 때마다 SharedPreferences에 저장
+    _saveSpecialMode();
   }
+
+
 
   @override
   Widget build(BuildContext context) {

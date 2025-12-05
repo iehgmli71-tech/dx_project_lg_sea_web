@@ -211,19 +211,17 @@ class _UiHomeState extends State<UiHome> {
                       offset: const Offset(0, 15),
                       child: GestureDetector(
                         onTap: () async {
-                          final confirmed =
-                          await _showCardModeConfirmDialog(context);
+                          final confirmed = await _showCardModeConfirmDialog(context);
 
                           if (confirmed == true) {
-                            // LG Regen 모드로 진입할 때 ESP32에 "Hello Regen" 전송
-                            try {
-                              await Esp32Api.showHelloRegenAll();
-                            } catch (e) {
-                              // 네트워크/ESP32 오류는 UI에 영향 없게 무시
-                              // print('ESP32 Hello Regen error: $e');
-                            }
-
+                            // 1) 화면 먼저 띄우기
                             _openCardMode();
+
+                            // 2) ESP32 호출은 "뒤에서" 비동기로 처리 (화면 전환 안 막게)
+                            Esp32Api.showHelloRegenAll().catchError((e) {
+                              // 필요하면 로그만 남기기
+                              // debugPrint('ESP32 Hello Regen error: $e');
+                            });
                           }
                         },
                         child: Container(

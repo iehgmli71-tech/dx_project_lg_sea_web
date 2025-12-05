@@ -297,121 +297,13 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
             SingleChildScrollView(
               child: Column(
                 children: [
-
                   _buildQuietHomeCard(),
-
-                  // 🔇 Quiet Home 카드 + 적용 버튼 전체 섹션
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 상단 Quiet 타이틀 + 전체 토글
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: const [
-                                      Row(
-                                        children: [
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Quiet Home Mode 시행할까요?',
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF111827),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: 8),
-                                      Padding(
-                                        padding: EdgeInsets.only(left: 26),
-                                        child: Text(
-                                          '기도 시간 동안 세탁기/건조기 · 냉장고 알림을 최소화합니다',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF6B7280),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-
-                                /// Quiet Home Mode 스위치
-                                _buildSwitch(
-                                  quietHomeMode,           // 🔥 Quiet 플래그만 사용
-                                      (value) => _handleQuietModeToggle(),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // 개별 토글들
-                            Column(
-                              children: [
-                                _toggleTile(
-                                  icon: Icons.local_laundry_service_outlined,
-                                  title: '세탁기/건조기 완료 알림 지연',
-                                  subtitle: '소리 없이 앱 알림만',
-                                  value: washerDryerDelay,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      washerDryerDelay = v;
-                                      // 🔥 두 개 상태를 보고 Quiet 플래그도 다시 계산
-                                      quietHomeMode = washerDryerDelay && fridgeDoorAlert;
-                                    });
-                                    _saveQuietModeSettings();
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-                                _toggleTile(
-                                  icon: Icons.kitchen_outlined,
-                                  title: '냉장고 문 열림 알림 최소화',
-                                  subtitle: '소리 없이 앱 알림만',
-                                  value: fridgeDoorAlert,
-                                  onChanged: (v) {
-                                    setState(() {
-                                      fridgeDoorAlert = v;
-                                      // 🔥 두 개 상태를 보고 Quiet 플래그도 다시 계산
-                                      quietHomeMode = washerDryerDelay && fridgeDoorAlert;
-                                    });
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-
-                                /// 라마단 타일은 Quiet와 별개로 동작
-                                _ramadanTile(), // 여기서 showCalendar = true 로 켜줌
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-
-                ],
-              ),
-            ),
-
             /// 달력 Overlay
             if (showCalendar) _buildCalendarOverlay(context),
           ],
+        ),
+      ),
+         ],
         ),
       ),
     );
@@ -437,7 +329,6 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
               /// Quiet Home 타이틀 + 전체 스위치
               Row(
                 children: [
-                  const Icon(Icons.nightlight_round, color: Color(0xFF16A34A)),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -514,11 +405,6 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
             ),
           ),
 
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeTrackColor: Colors.green.shade300,
-          ),
       // 🔥 Flutter 기본 Switch 대신 Figma 스타일 스위치 사용
       _buildSwitch(value, onChanged),
 

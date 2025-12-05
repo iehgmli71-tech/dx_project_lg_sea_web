@@ -70,10 +70,10 @@ final List<Device> allDevices = [
     name: 'Refrigerator',
     iconEmoji: '🧊',
     iconImage: 'images/Refrigerator.png',
-    status: '34°F',
+    status: 'Off',
     detail: null,
-    active: true,
     averagePowerW: 150,   // 🔹 0.15 kW (24시간 평균)
+    active: false,
     consumables: [
       Consumable(
         name: '탈취 필터',

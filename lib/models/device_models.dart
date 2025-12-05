@@ -64,7 +64,7 @@ class Device {
     required this.iconEmoji,
     this.iconImage,
     required this.averagePowerW,
-    this.active = true,
+    this.active = false,
     this.status = '작동 중',
     this.cardColor = const Color(0xFFF3F4F6),
     this.detail,

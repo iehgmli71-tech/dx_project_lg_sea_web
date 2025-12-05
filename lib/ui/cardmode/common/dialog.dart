@@ -180,6 +180,8 @@ class WashingMachineSheet extends StatefulWidget {
 
 class _WashingMachineSheetState extends State<WashingMachineSheet> {
   bool isOn = false;
+  String? selectedCourse;
+
 
   // 세탁 코스 리스트
   final List<String> courses = [
@@ -211,11 +213,11 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
       special: null,
     ),
     'Prayerwear': _WashCourseDetail(
-      wash: '세탁 2회 (약하게)',
+      wash: '세탁 2회 \n(약하게)',
       washSub: null,
       rinse: '헹굼 3회',
       rinseSub: null,
-      spin: '탈수 1회 (약하게)',
+      spin: '탈수 1회 \n(약하게)',
       spinSub: null,
       special: '기도복/얇은 천을 위한 저강도 코스입니다.',
     ),
@@ -230,17 +232,17 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
       special: '강력 스팀으로 세탁조에 청결함을 유지할 수 있습니다.',
     ),
     'Najis Wash': _WashCourseDetail(
-      wash: '세탁 3회 (강하게)',
+      wash: '세탁 3회 \n(강하게)',
       washSub: null,
-      rinse: '헹굼 4회 (강하게)',
+      rinse: '헹굼 4회 \n(강하게)',
       rinseSub: null,
-      spin: '탈수 1회 (강하게)',
+      spin: '탈수 1회  \n(강하게)',
       spinSub: null,
       special: '불순 오염(Najis)에 대응하는 집중 세탁 코스입니다.',
     ),
   };
 
-  String? selectedCourse;
+
   bool showConfirmPopup = false;
   String? pendingCourse;
   bool showAutoSaveAlert = false;
@@ -249,8 +251,21 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
   @override
   void initState() {
     super.initState();
-    isOn = widget.initialOn;
-    _loadSelectedCourse();
+    _initFromPrefs();
+  }
+
+  Future<void> _initFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedPower  = prefs.getBool(_powerKey) ?? false;
+    final savedCourse = prefs.getString(_courseKey);
+
+    if (!mounted) return;
+
+    setState(() {
+      isOn = savedPower;                // 🔌 전원 먼저 복원
+      selectedCourse = isOn ? savedCourse : null; // 전원이 켜져 있을 때만 코스 복원
+    });
   }
   /// 기기별로 고유 저장 키 (여러 세탁기 사용 대비)
   String get _courseKey => 'washing_course_${widget.device.id}';
@@ -259,7 +274,8 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
   Future<void> _loadSelectedCourse() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      selectedCourse = prefs.getString(_courseKey);
+      // ✅ 전원이 켜져 있을 때만 저장된 코스 복원
+      selectedCourse = isOn ? selectedCourse : null;
     });
   }
 
@@ -273,6 +289,9 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
       await prefs.remove(_courseKey);
     }
   }
+
+  static const _powerKey  = 'washing_power_state';
+
 
   void _handleCourseSelect(String course) {
     setState(() {
@@ -309,6 +328,12 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
       );
     }
   }
+
+  Future<void> _savePowerState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_powerKey, isOn);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -387,18 +412,21 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                    onPressed: () {
+                  onPressed: () async {
                       setState(() {
                         isOn = !isOn;
-
-                        // 🔥 전원 OFF 시 선택된 세탁 코스 초기화
+                        // 전원 OFF 시 코스 초기화
                         if (!isOn) {
-                          selectedCourse = null; // ← 네가 실제 사용하는 선택 변수명으로 변경
+                          selectedCourse = null;
                         }
                       });
-
                       widget.onPowerChanged?.call(isOn);
-                    },
+                      await _savePowerState();     // 🔥 전원 상태 저장
+                      await _saveSelectedCourse(); // 코스도 같이 저장/삭제
+                  },
+                  icon: const Icon(Icons.power_settings_new),
+                  label: Text(isOn ? '꺼짐' : '켜짐'),
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
                     foregroundColor: isOn ? Colors.white : Colors.grey.shade700,
@@ -408,8 +436,6 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
-                  icon: const Icon(Icons.power_settings_new),
-                  label: Text(isOn ? '켜짐' : '꺼짐'),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1297,7 +1323,9 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
 
   // 온도 상태
   int freezerTemp = -18; // -23 ~ -15
-  int fridgeTemp = 5;    // 1 ~ 7
+  int fridgeBaseTemp = 4;      // 사용자가 설정한 기본 온도
+  final int fridgeMin = 1;
+  final int fridgeMax = 7;
 
   // Halal zone / Boost / 알림 / 보호모드
   bool showHalalZone = false;
@@ -1306,6 +1334,14 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
   bool tempAlert = true;
   bool protectionMode = true;
 
+  int get fridgeDisplayTemp {
+    if (!iftarBoostMode) return fridgeBaseTemp;
+
+    // 예: Boost 모드일 때 2도 더 낮게
+    final boosted = fridgeBaseTemp - 2;
+    // 최소/최대 범위는 유지
+    return boosted.clamp(fridgeMin, fridgeMax);
+  }
 
   @override
   void initState() {
@@ -1408,7 +1444,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     setState(() => isOn = !isOn);
-                    widget.onPowerChanged?.call(isOn);
+                    widget.onPowerChanged(isOn);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
@@ -1499,21 +1535,24 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
           // 냉장실 온도
           _buildTempControlRow(
             title: '냉장실',
-            temp: fridgeTemp,
+            temp: fridgeDisplayTemp,
             tempColor: Colors.cyan.shade600,
-            min: 1,
-            max: 7,
+            min: fridgeMin,
+            max: fridgeMax,
             gradient: const LinearGradient(
               colors: [Color(0xFFA5F3FC), Color(0xFF06B6D4)],
             ),
-            onChanged: (v) {
-              setState(() => fridgeTemp = v);
-            },
-          ),
-        ],
-      ),
-    );
-  }
+            onChanged: (value) {
+                 setState(() {
+            // 슬라이더는 "기본 온도"를 수정
+            fridgeBaseTemp = value;
+                });
+               },
+               ),
+             ],
+           ),
+           );
+         }
 
   Widget _buildTempControlRow({
     required String title,
@@ -2074,7 +2113,9 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '현재 냉장실 온도: $fridgeTemp°C',
+                    iftarBoostMode
+                        ? '현재 냉장실 온도: ${fridgeDisplayTemp}°C (기본 ${fridgeBaseTemp}°C → Boost 적용)'
+                        : '현재 냉장실 온도: ${fridgeBaseTemp}°C',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF4B5563),

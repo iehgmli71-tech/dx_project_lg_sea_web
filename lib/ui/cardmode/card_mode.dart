@@ -79,6 +79,10 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
   void dispose() { // 앱 종료 시 타이머와 감지기 해제
     _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+
+    // 🔥 LG Regen 화면을 떠날 때 → 모든 보드에 "Hello ThinQ" + LED OFF
+    Esp32Api.showHelloThinqAll();
+
     super.dispose();
   }
 

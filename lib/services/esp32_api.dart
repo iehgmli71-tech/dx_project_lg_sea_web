@@ -2,9 +2,9 @@ import 'package:http/http.dart' as http;
 
 class Esp32Api {
   // ===== 1) 각 보드 IP =====
-  static const String washerBaseUrl = 'http://192.168.219.138';  // 세탁기
-  static const String fridgeBaseUrl = 'http://192.168.219.60';  // 냉장고
-  static const String acBaseUrl     = 'http://192.168.219.104';  // 에어컨
+  static const String washerBaseUrl = 'http://192.168.219.229';  // 세탁기
+  static const String fridgeBaseUrl = 'http://192.168.219.208';  // 냉장고
+  static const String acBaseUrl     = 'http://192.168.219.53';  // 에어컨
 
   // ===== 1-1) 가전 전원 상태 (켜짐 여부) 기억 =====
   //  - true  : 해당 가전이 "켜져 있음"

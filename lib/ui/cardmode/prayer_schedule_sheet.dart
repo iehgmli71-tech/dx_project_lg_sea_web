@@ -57,9 +57,8 @@ class _PrayerScheduleSheet extends StatefulWidget {
 }
 
 class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
-  bool washerDryerDelay = false;   // Quiet Mode (세탁기)
-  bool fridgeDoorAlert = false;    // Quiet Mode (냉장고)
-  bool quietHomeMode = false;
+  bool washerDryerDelay = false; // Quiet Mode (세탁기)
+  bool fridgeDoorAlert = false; // Quiet Mode (냉장고)
   bool ramadanEcoMode = false;
 
   bool showCalendar = false;
@@ -100,12 +99,10 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
 
     await _saveQuietModeSettings();
 
-    // 🔥 여기서 실제 ESP32로 Quiet ON/OFF 명령 전송
+    // 🔥 ESP32로 Quiet ON/OFF 명령 전송
     if (value) {
-      // Quiet Home Mode ON
       await Esp32Api.showQuietHomeModeAll();
     } else {
-      // Quiet Home Mode OFF → 기본 Contact 상태로 복귀
       await Esp32Api.clearQuietHomeModeAll(
         washerConnected: true,
         fridgeConnected: true,
@@ -114,7 +111,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     }
   }
 
-  /// Quiet 개별 토글(세탁기/냉장고) — 지금은 개별 on/off 시 ESP32 직접 호출 X
+  /// Quiet 개별 토글(세탁기/냉장고)
   Future<void> _handleQuietIndividualToggle(
       bool value,
       bool isWasher,
@@ -128,8 +125,6 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     });
 
     await _saveQuietModeSettings();
-
-    // 개별 기능은 Quiet 전체 ON/OFF 동작에는 영향 없이 그대로 저장만 유지
   }
 
   /// 오늘~2026.04.30까지 달력 생성
@@ -180,46 +175,10 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
     return months;
   }
 
-
-  /// 라마단 전환 버튼
-
-  /// Quiet Home Mode 카드 탭
-  void _handleQuietModeActivate() {
-    setState(() {
-      // 둘 다 켜져 있으면 둘 다 끄고, 아니면 둘 다 켬
-      if (washerDryerDelay && fridgeDoorAlert) {
-        washerDryerDelay = false;
-        fridgeDoorAlert = false;
-      } else {
-        washerDryerDelay = true;
-        fridgeDoorAlert = true;
-      }
-    });
-    _saveQuietModeSettings();
-  }
-
-  void _handleQuietModeToggle() {
-    setState(() {
-      if (!quietHomeMode) {
-        // 🔼 켤 때
-        quietHomeMode    = true;
-        washerDryerDelay = true;
-        fridgeDoorAlert  = true;
-      } else {
-        // 🔽 끌 때
-        quietHomeMode    = false;
-        washerDryerDelay = false;
-        fridgeDoorAlert  = false;
-      }
-    });
-
-    _saveQuietModeSettings();
-  }
-
   /// 라마단 토글
-  void _handleRamadanToggle() {
+  Future<void> _handleRamadanToggle() async {
     if (!ramadanEcoMode) {
-      // 켜기 → 날짜 선택 시트 오픈
+      // 🔼 라마단 모드 켤 때 → 날짜 선택 시트 오픈
       setState(() {
         showCalendar = true;
         selectingStartDate = true;
@@ -227,18 +186,24 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         endDate = null;
       });
     } else {
-      // 끄기
+      // 🔽 라마단 모드 끌 때
       setState(() {
-        ramadanEcoMode = false;
-        startDate = null;
-        endDate = null;
+        ramadanEcoMode   = false;
+        washerDryerDelay = false;   // Quiet 옵션도 같이 OFF
+        fridgeDoorAlert  = false;
+        startDate        = null;
+        endDate          = null;
       });
 
-      // 하위 카드 모드에도 전달
       widget.onRamadanModeChange(false);
+      await _saveQuietModeSettings();
 
-      // ESP32 기본 Contact로 복귀
-      Esp32Api.clearRamadanModeAll();
+      // ✅ 하드웨어에 "라마단/Quiet 해제" 명령 전송
+      await Esp32Api.clearRamadanModeAll(
+        washerConnected: true,
+        fridgeConnected: true,
+        acConnected: true,
+      );
     }
   }
 
@@ -250,7 +215,9 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         selectingStartDate = false;
       } else {
         if (startDate != null &&
-            date.isBefore(DateTime(startDate!.year, startDate!.month, startDate!.day))) {
+            date.isBefore(
+              DateTime(startDate!.year, startDate!.month, startDate!.day),
+            )) {
           startDate = date;
           endDate = null;
           selectingStartDate = false;
@@ -271,9 +238,10 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         showCalendar = false;
       });
 
-      widget.onRamadanModeChange(true);
+      // ✅ 라마단 On일 때 Quiet 토글 상태를 디스크에 저장
+      await _saveQuietModeSettings();
 
-      // ESP32에 라마단 실행 명령
+      widget.onRamadanModeChange(true);
       await Esp32Api.showRamadanModeAll();
     }
   }
@@ -297,13 +265,15 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
             SingleChildScrollView(
               child: Column(
                 children: [
+                  // ✅ Quiet Home 카드 하나만 사용
                   _buildQuietHomeCard(),
+                ],
+              ),
+            ),
+
             /// 달력 Overlay
             if (showCalendar) _buildCalendarOverlay(context),
           ],
-        ),
-      ),
-         ],
         ),
       ),
     );
@@ -329,6 +299,7 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
               /// Quiet Home 타이틀 + 전체 스위치
               Row(
                 children: [
+                  const Icon(Icons.nightlight_round, color: Color(0xFF16A34A)),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -400,14 +371,17 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: const TextStyle(fontSize: 14)),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                Text(
+                  subtitle,
+                  style:
+                  TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
               ],
             ),
           ),
 
-      // 🔥 Flutter 기본 Switch 대신 Figma 스타일 스위치 사용
-      _buildSwitch(value, onChanged),
-
+          /// ✅ 기본 Switch 제거, 커스텀 토글만 사용
+          _buildSwitch(value, onChanged),
         ],
       ),
     );
@@ -421,7 +395,6 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.grey.shade200),
-
       ),
       child: Row(
         children: [
@@ -447,7 +420,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                 if (ramadanEcoMode && startDate != null && endDate != null)
                   Text(
                     '📅 ${_formatDate(startDate!)} ~ ${_formatDate(endDate!)}',
-                    style: const TextStyle(fontSize: 11, color: Colors.green),
+                    style:
+                    const TextStyle(fontSize: 11, color: Colors.green),
                   ),
               ],
             ),
@@ -501,7 +475,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                 height: MediaQuery.of(context).size.height * 0.8,
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Column(
                   children: [
@@ -516,16 +491,21 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                     ),
                     const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             'Prayer Schedule',
-                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold),
                           ),
                           IconButton(
-                            onPressed: () => setState(() => showCalendar = false),
+                            onPressed: () =>
+                                setState(() => showCalendar = false),
                             icon: const Icon(Icons.close),
                           ),
                         ],
@@ -533,10 +513,16 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                     ),
 
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
-                        selectingStartDate ? '🗓️ 시작 날짜를 선택하세요' : '🗓️ 종료 날짜를 선택하세요',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF4B5563)),
+                        selectingStartDate
+                            ? '🗓️ 시작 날짜를 선택하세요'
+                            : '🗓️ 종료 날짜를 선택하세요',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF4B5563),
+                        ),
                       ),
                     ),
 
@@ -544,7 +530,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
 
                     /// 요일
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 24),
                       child: Row(
                         children: const [
                           _WeekdayLabel('일'),
@@ -567,7 +554,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
                         itemBuilder: (context, index) {
                           final month = calendarMonths[index];
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding:
+                            const EdgeInsets.only(bottom: 12),
                             child: Column(
                               children: [
                                 Text(
@@ -588,30 +576,38 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
 
                     /// 설정 완료 버튼
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+                      padding: const EdgeInsets.fromLTRB(
+                          24, 12, 24, 16),
                       child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: (startDate != null && endDate != null)
+                            backgroundColor:
+                            (startDate != null && endDate != null)
                                 ? const Color(0xFF22C55E)
                                 : const Color(0xFFE5E7EB),
-                            foregroundColor: (startDate != null && endDate != null)
+                            foregroundColor:
+                            (startDate != null && endDate != null)
                                 ? Colors.white
                                 : const Color(0xFF9CA3AF),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius:
+                              BorderRadius.circular(16),
                             ),
                           ),
-                          onPressed: (startDate != null && endDate != null)
+                          onPressed:
+                          (startDate != null && endDate != null)
                               ? () async {
                             await _handleCalendarConfirm();
                           }
                               : null,
                           child: const Text(
                             '라마단 절전모드 설정 완료',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
@@ -631,7 +627,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: month.days.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate:
+      const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
         mainAxisSpacing: 4,
         crossAxisSpacing: 4,
@@ -639,14 +636,17 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
       itemBuilder: (context, index) {
         final day = month.days[index];
 
-        final bool isStart = day != null && startDate != null && _isSameDay(day, startDate!);
-        final bool isEnd = day != null && endDate != null && _isSameDay(day, endDate!);
+        final bool isStart =
+            day != null && startDate != null && _isSameDay(day, startDate!);
+        final bool isEnd =
+            day != null && endDate != null && _isSameDay(day, endDate!);
         final bool isInRange = day != null &&
             startDate != null &&
             endDate != null &&
             day.isAfter(startDate!) &&
             day.isBefore(endDate!);
-        final bool isToday = day != null && _isSameDay(day, DateTime.now());
+        final bool isToday =
+            day != null && _isSameDay(day, DateTime.now());
 
         Color bgColor;
         Color textColor = const Color(0xFF111827);
@@ -661,11 +661,13 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
         } else if (isInRange) {
           bgColor = const Color(0xFFDCFCE7);
           textColor = const Color(0xFF15803D);
-          border = Border.all(color: const Color(0xFF4ADE80));
+          border =
+              Border.all(color: const Color(0xFF4ADE80));
         } else {
           bgColor = Colors.white;
           if (isToday) {
-            border = Border.all(color: const Color(0xFF4ADE80));
+            border =
+                Border.all(color: const Color(0xFF4ADE80));
           }
         }
 
@@ -680,7 +682,8 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
             alignment: Alignment.center,
             child: Text(
               day?.day.toString() ?? '',
-              style: TextStyle(fontSize: 12, color: textColor),
+              style:
+              TextStyle(fontSize: 12, color: textColor),
             ),
           ),
         );
@@ -689,7 +692,9 @@ class _PrayerScheduleSheetState extends State<_PrayerScheduleSheet> {
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+    return a.year == b.year &&
+        a.month == b.month &&
+        a.day == b.day;
   }
 }
 

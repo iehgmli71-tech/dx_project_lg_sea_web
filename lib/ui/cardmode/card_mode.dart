@@ -172,8 +172,17 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
         // 에어컨 전원 ON → "AC Contact" + 흰색 LED
         Esp32Api.acPowerOn();
       }
+    } else {
+      // 전원 OFF일 때 -> 각 가전별 OFF처리 ("LG Regen")
+      if (deviceId == '1') {
+        Esp32Api.washerPowerOff();
+      } else if (deviceId == '3') {
+        Esp32Api.fridgePowerOff();
+      } else if (deviceId == '4') {
+        Esp32Api.acPowerOff();
+      }
     }
-    // OFF 시에는 UI만 Off로 두고, 별도 텍스트는 보내지 않음
+
 
     // ⚡ 전력 사용량 매니저에도 ON/OFF 반영 (❗ 2개 인자만)
     try {

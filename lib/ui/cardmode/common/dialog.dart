@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dx_projecet_lg_sea/models/device_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// 🔥 ESP32 연동
+import 'package:dx_projecet_lg_sea/services/esp32_api.dart';
 
 /// CardMode에서 쓰는 디바이스 모델
 
@@ -307,23 +309,32 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
     });
   }
 
-  void _handleConfirmCourse() {
+  Future<void> _handleConfirmCourse() async {
     if (pendingCourse != null) {
+      final String courseName = pendingCourse!;
+
       setState(() {
-        selectedCourse = pendingCourse;
+        selectedCourse = courseName;
         showConfirmPopup = false;
       });
-      _saveSelectedCourse();
+
+      await _saveSelectedCourse();
 
       // 코스 시작 시 전원 ON 처리
       if (!isOn) {
         isOn = true;
         widget.onPowerChanged(true);
+        await _savePowerState();
+      }
+
+      // 🔥 Tahara Rinse일 때 ESP32에 LCD/LED 명령
+      if (courseName == 'Tahara Rinse') {
+        await Esp32Api.showWasherTaharaRinse();
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('"$pendingCourse" 코스를 시작했습니다.'),
+          content: Text('"$courseName" 코스를 시작했습니다.'),
         ),
       );
     }
@@ -2080,9 +2091,17 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                     _buildToggle(
                       value: iftarBoostMode,
                       activeColor: const Color(0xFF22C55E),
-                      onChanged: (val) {
+                      onChanged: (val) async {
                         setState(() => iftarBoostMode = val);
-                        _saveBoostMode();
+                        await _saveBoostMode();
+
+                        if (val) {
+                          // ✅ Boost Mode ON → 파란 LED + "Boost Mode Run"
+                          await Esp32Api.showFridgeBoostMode();
+                        } else {
+                          // ✅ Boost Mode OFF → LED 끄기 / LCD 초기화 등
+                          await Esp32Api.clearFridgeBoostMode(); // ← 실제 함수 이름에 맞게 수정
+                        }
                       },
                     ),
                   ],
@@ -2490,20 +2509,20 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
     },
   };
 
-  void _selectSpecialMode(String name) {
+  Future<void> _selectSpecialMode(String name) async {
+    bool turnedOnWudhu = false;
+    bool turnedOffWudhu = false;
+
     setState(() {
-      // 🔥 같은 모드를 다시 누르면 해제되도록
       if (selectedSpecialMode == name) {
+        // 🔻 같은 버튼 다시 눌렀다 = 선택 해제
+        if (name == 'Wudhu Mode') {
+          turnedOffWudhu = true;
+        }
         selectedSpecialMode = null;
-
-        // 모드 해제 시 초기화 원하는 값 유지하면 아래 추가 가능
-        // mode = '자동';
-        // temperature = 기본값;
-
       } else {
+        // 🔼 새 모드 선택
         selectedSpecialMode = name;
-
-        // 기존 에어컨 로직 유지
         mode = '자동';
 
         final tempText = specialModes[name]!['temp']!;
@@ -2511,11 +2530,24 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
         if (match != null) {
           temperature = int.parse(match.group(1)!);
         }
+
+        if (name == 'Wudhu Mode') {
+          turnedOnWudhu = true;
+        }
       }
     });
 
-    // 🔥 상태가 변경될 때마다 SharedPreferences에 저장
-    _saveSpecialMode();
+    await _saveSpecialMode();
+
+    // ✅ Wudhu Mode 켰을 때
+    if (turnedOnWudhu) {
+      await Esp32Api.showAcWudhuMode();
+    }
+
+    // ✅ Wudhu Mode 껐을 때
+    if (turnedOffWudhu) {
+      await Esp32Api.clearAcWudhuMode(); // ← 실제 함수 이름에 맞게 수정
+    }
   }
 
 

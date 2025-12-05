@@ -348,108 +348,95 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    return _BaseBottomSheet(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더 (아이콘/이름/상태 + 닫기 버튼)
+          Row(
             children: [
-              // 상단 핸들
               Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(999),
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEEF7EE),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: _deviceImage(widget.device),
                 ),
               ),
-
-              // 헤더 (아이콘/이름/전원스위치)
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF7EE),
-                      shape: BoxShape.circle,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.device.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
                     ),
-                    child: Center(
-                      child: _deviceImage(widget.device),
+                    const SizedBox(height: 2),
+                    Text(
+                      isOn
+                          ? '전원 켜짐 · 원격 제어 사용 가능'
+                          : '전원 꺼짐 · 코스 시작 시 자동으로 켜집니다',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isOn ? Colors.green.shade700 : Colors.grey,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.device.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          isOn ? '전원 켜짐 · 원격 제어 사용 가능' : '전원 꺼짐 · 코스 시작 시 자동으로 켜집니다',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isOn ? Colors.green.shade700 : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 닫기 버튼
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 전원카드
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                      setState(() {
-                        isOn = !isOn;
-                        // 전원 OFF 시 코스 초기화
-                        if (!isOn) {
-                          selectedCourse = null;
-                        }
-                      });
-                      widget.onPowerChanged?.call(isOn);
-                      await _savePowerState();     // 🔥 전원 상태 저장
-                      await _saveSelectedCourse(); // 코스도 같이 저장/삭제
-                  },
-                  icon: const Icon(Icons.power_settings_new),
-                  label: Text(isOn ? '꺼짐' : '켜짐'),
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
-                    foregroundColor: isOn ? Colors.white : Colors.grey.shade700,
-                    elevation: isOn ? 4 : 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // 전원 버튼
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                setState(() {
+                  isOn = !isOn;
+                  // 전원 OFF 시 코스 초기화
+                  if (!isOn) {
+                    selectedCourse = null;
+                  }
+                });
+                widget.onPowerChanged?.call(isOn);
+                await _savePowerState();     // 전원 상태 저장
+                await _saveSelectedCourse(); // 코스도 같이 저장/삭제
+              },
+              icon: const Icon(Icons.power_settings_new),
+              label: Text(isOn ? '꺼짐' : '켜짐'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                isOn ? Colors.green : Colors.grey.shade200,
+                foregroundColor:
+                isOn ? Colors.white : Colors.grey.shade700,
+                elevation: isOn ? 4 : 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+            if (isOn) ...[
 
               // 🔥 세탁코스 원격제어 블럭 (Figma 코드 Flutter 버전)
               Container(
@@ -818,10 +805,10 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                   ),
                 ),
             ],
+           ],
           ),
-        ),
-      ),
-    );
+        );
+
   }
 
   Widget _buildCourseDetailCard(_WashCourseDetail detail) {
@@ -1378,125 +1365,103 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+    return _BaseBottomSheet(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더 (아이콘/이름/전원 상태 + 닫기)
+          Row(
             children: [
-              // 상단 핸들
               Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(999),
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE0F2FE),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: _deviceImage(widget.device),
                 ),
               ),
-
-              // 헤더 (아이콘/이름/전원)
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFE0F2FE),
-                      shape: BoxShape.circle,
+              const SizedBox(width: 12),
+              // 이름 + 상태 텍스트
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.device.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
                     ),
-                    child: Center(
-                      child: _deviceImage(widget.device),
+                    const SizedBox(height: 2),
+                    Text(
+                      isOn
+                          ? '전원 켜짐 · 온도 관리 가능'
+                          : '전원 꺼짐 · 설정만 미리 변경됩니다',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isOn ? Colors.blue.shade700 : Colors.grey,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  //이름+상테 텍스트
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.device.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          isOn ? '전원 켜짐 · 온도 관리 가능' : '전원 꺼짐 · 설정만 미리 변경됩니다',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isOn ? Colors.blue.shade700 : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // 전원 버튼 (카드 스타일)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() => isOn = !isOn);
-                    widget.onPowerChanged(isOn);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
-                    foregroundColor: isOn ? Colors.white : Colors.grey.shade700,
-                    elevation: isOn ? 4 : 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  icon: const Icon(Icons.power_settings_new),
-                  label: Text(isOn ? '켜짐' : '꺼짐'),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // 온도관리 카드
-              _buildTemperatureCard(),
-
-              const SizedBox(height: 16),
-
-              // Halal Kitchen Assistant
-              _buildHalalKitchenAssistant(),
-
-              const SizedBox(height: 16),
-
-              // Boost Mode
-              _buildBoostModeCard(),
-
-              const SizedBox(height: 16),
-
-              // 알림 설정
-              _buildAlertSettingsCard(),
-
-              const SizedBox(height: 16),
-
-              // 전력 보호 모드
-              _buildProtectionModeCard(),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
             ],
           ),
-        ),
+
+          const SizedBox(height: 16),
+
+          // 전원 버튼 (카드 스타일)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                setState(() => isOn = !isOn);
+                widget.onPowerChanged(isOn);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isOn ? Colors.green : Colors.grey.shade200,
+                foregroundColor:
+                isOn ? Colors.white : Colors.grey.shade700,
+                elevation: isOn ? 4 : 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              icon: const Icon(Icons.power_settings_new),
+              label: Text(isOn ? '켜짐' : '꺼짐'),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 🔥 전원이 켜졌을 때만 대시보드 카드들 보이게
+          if (isOn) ...[
+            _buildTemperatureCard(),
+            const SizedBox(height: 16),
+
+            _buildHalalKitchenAssistant(),
+            const SizedBox(height: 16),
+
+            _buildBoostModeCard(),
+            const SizedBox(height: 16),
+
+            _buildAlertSettingsCard(),
+            const SizedBox(height: 16),
+
+            _buildProtectionModeCard(),
+          ],
+        ],
       ),
     );
   }

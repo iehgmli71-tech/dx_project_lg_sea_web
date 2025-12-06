@@ -47,6 +47,11 @@ class _PowerManagementState extends State<PowerManagement> {
 
   Timer? _timer; // 타이머 추가
 
+  String _monthName(int m) => [
+    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ][m];
+
   void _startUsageTimer() {
     // 혹시 이전에 타이머가 돌아가고 있었다면 정리
     _timer?.cancel();
@@ -310,7 +315,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                   ],
                                 ),
                                 const Text(
-                                  '전력 관리',
+                                  'Power management',
                                   style: TextStyle(
                                     color: Colors.black87,
                                     fontWeight: FontWeight.bold,
@@ -322,7 +327,7 @@ class _PowerManagementState extends State<PowerManagement> {
                             ),
                             const SizedBox(height: 24),
                             const Text(
-                              '전력 관리 방식',
+                              'Power management method',
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontWeight: FontWeight.w600,
@@ -334,7 +339,7 @@ class _PowerManagementState extends State<PowerManagement> {
                               children: [
                                 Expanded(
                                   child: _PaymentTypeButton(
-                                    label: '선불',
+                                    label: 'Prepaid',
                                     icon: Icons.bolt,
                                     selected:
                                     paymentType == PaymentType.prepaid,
@@ -348,7 +353,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: _PaymentTypeButton(
-                                    label: '후불',
+                                    label: 'Postpaid',
                                     icon: Icons.access_time,
                                     selected:
                                     paymentType == PaymentType.postpaid,
@@ -434,7 +439,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                                   ),
                                                   const SizedBox(height: 4),
                                                   const Text(
-                                                    '잔여 토큰',
+                                                    'Remaining Tokens',
                                                     style: TextStyle(
                                                       fontSize: 12,
                                                       color: Colors.grey,
@@ -451,22 +456,22 @@ class _PowerManagementState extends State<PowerManagement> {
                                         children: [
                                           Expanded(
                                             child: _TokenInfoItem(
-                                              label: '총 토큰',
+                                              label: 'Total Tokens',
                                               value:
                                               '${savedTotalToken.toStringAsFixed(2)} kWh',
                                             ),
                                           ),
                                           Expanded(
                                             child: _TokenInfoItem(
-                                              label: '사용 토큰',
+                                              label: 'Used Tokens',
                                               // 🔹 이번 달 사용량을 사용 토큰으로 표시, 소수점 2자리
                                               value: '${usedThisMonth.toStringAsFixed(2)} kWh',
                                             ),
                                           ),
                                           Expanded(
                                             child: _TokenInfoItem(
-                                              label: '예상 기간',
-                                              value: '$expectedDays 일',
+                                              label: 'Estimated Duration',
+                                              value: '$expectedDays Day(s)',
                                             ),
                                           ),
                                         ],
@@ -493,7 +498,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                             });
                                           },
                                           child: const Text(
-                                            '+ 토큰 추가하기',
+                                            '+ Add Tokens',
                                             style: TextStyle(
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -548,7 +553,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                         });
                                       },
                                       child: const Text(
-                                        '+ 토큰 추가하기',
+                                        '+ Add Tokens',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -567,7 +572,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                         size: 20, color: Colors.blue),
                                     const SizedBox(width: 6),
                                     const Text(
-                                      '토큰 대시보드',
+                                      'Token Dashboard',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 15,
@@ -583,7 +588,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                   Expanded(
                                     child: _SmallStatCard(
                                       icon: Icons.trending_down,
-                                      label: '오늘 사용량',
+                                      label: "Today's Usage",
                                       value: today.toStringAsFixed(2),   // 매니저 값
                                     ),
                                   ),
@@ -591,7 +596,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                   Expanded(
                                     child: _SmallStatCard(
                                       icon: Icons.bolt,
-                                      label: '이번 달 사용량',
+                                      label: "This Month's Usage",
                                       value: month.toStringAsFixed(2),   // 매니저 값
                                     ),
                                   ),
@@ -616,7 +621,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     elevation: 4,
                                   ),
                                   child: const Text(
-                                    '전력 레포트',
+                                    'Power Report',
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -662,7 +667,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                       MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          '이번 달 예상 요금',
+                                          'Estimated Bill for This Month',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Colors.white70,
@@ -687,8 +692,8 @@ class _PowerManagementState extends State<PowerManagement> {
                                     // 결제일: 서버 데이터 적용
                                     Text(
                                       _postpaidDashboard?.dueDate == null
-                                          ? '결제일 정보 없음'
-                                          : '결제일: ${_postpaidDashboard!.dueDate}',
+                                          ? 'No Billing Date Available'
+                                          : 'Billing Date: ${_postpaidDashboard!.dueDate}',
                                       style: const TextStyle(
                                         fontSize: 13,
                                         color: Colors.white70,
@@ -702,7 +707,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                   Expanded(
                                     child: _SmallStatCard(
                                       icon: Icons.trending_down,
-                                      label: '오늘 사용량',
+                                      label: "Today's Usage",
                                       value: _postpaidDashboard == null
                                           ? today.toStringAsFixed(2)
                                           : _postpaidDashboard!.todayUsageKwh.toStringAsFixed(2),
@@ -712,7 +717,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                   Expanded(
                                     child: _SmallStatCard(
                                       icon: Icons.bolt,
-                                      label: '이번 달 사용량',
+                                      label: "This Month's Usage",
                                       value: _postpaidDashboard == null
                                           ? month.toStringAsFixed(2)
                                           : _postpaidDashboard!.monthUsageKwh.toStringAsFixed(2),
@@ -724,7 +729,7 @@ class _PowerManagementState extends State<PowerManagement> {
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: const Text(
-                                  '청구 내역',
+                                  'Billing Details',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
@@ -743,7 +748,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                 ),
                               ] else if (bills.isEmpty) ...[
                                 const Text(
-                                  '청구 내역이 없습니다.',
+                                  'No Billing Details Available',
                                   style: TextStyle(fontSize: 13, color: Colors.grey),
                                 ),
                               ] else ...[
@@ -751,9 +756,9 @@ class _PowerManagementState extends State<PowerManagement> {
                                   children: [
                                     for (final b in bills) ...[
                                       _BillingItem(
-                                        month: '${b.year}년 ${b.month}월',
+                                        month: '${_monthName(b.month)} ${b.year}',
                                         amount: 'Rp ${b.amount.toStringAsFixed(0)}',
-                                        status: b.status == 'PAID' ? '완납' : '미납',
+                                        status: b.status == 'PAID' ? 'Paid' : 'Unpaid',
                                       ),
                                       const SizedBox(height: 8),
                                     ],
@@ -796,7 +801,7 @@ class _PowerManagementState extends State<PowerManagement> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                '토큰 추가',
+                                'Add Tokens',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
@@ -831,7 +836,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                 Icon(Icons.battery_charging_full, size: 16),
                                 SizedBox(width: 6),
                                 Text(
-                                  '계량기 브랜드 선택',
+                                  'Select Meter Brand',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black87,
@@ -911,7 +916,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                 Icon(Icons.bolt, size: 16),
                                 SizedBox(width: 6),
                                 Text(
-                                  '구입 토큰 입력 (kWh)',
+                                  'Enter Token Amount (kWh)',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black87,
@@ -931,7 +936,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     decimal: true,
                                   ),
                                   decoration: InputDecoration(
-                                    hintText: '예: 500',
+                                    hintText: 'e.g., 500',
                                     contentPadding:
                                     const EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -967,7 +972,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                   ),
                                 ),
                                 child: const Text(
-                                  '추가',
+                                  'Add',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -1002,7 +1007,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     MainAxisAlignment.spaceBetween,
                                     children: [
                                       const Text(
-                                        '누적 토큰',
+                                        'Accumulated Tokens',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
@@ -1018,7 +1023,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                           MaterialTapTargetSize.shrinkWrap,
                                         ),
                                         child: const Text(
-                                          '초기화',
+                                          'Reset',
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Colors.red,
@@ -1052,7 +1057,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                   const SizedBox(height: 8),
                                   if (addTokenHistory.isNotEmpty) ...[
                                     const Text(
-                                      '입력 내역:',
+                                      'Input History:',
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: Colors.grey,
@@ -1130,7 +1135,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     child: CircularProgressIndicator(strokeWidth: 2),
                                   )
                                       : const Text(
-                                    '설정 완료 및 저장',
+                                    'Save Settings',
                                     style: TextStyle(fontWeight: FontWeight.w600),
                                   ),
                                 )

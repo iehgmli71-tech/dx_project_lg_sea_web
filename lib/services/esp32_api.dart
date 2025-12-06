@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 class Esp32Api {
   // ===== 1) 각 보드 IP =====
   static const String washerBaseUrl = 'http://192.168.219.229';  // 세탁기
-  static const String fridgeBaseUrl = 'http://192.168.219.208';  // 냉장고
-  static const String acBaseUrl     = 'http://192.168.219.53';  // 에어컨
+  static const String fridgeBaseUrl = 'http://192.168.219.53';  // 냉장고
+  static const String acBaseUrl     = 'http://192.168.219.197';  // 에어컨
 
   // ===== 1-1) 가전 전원 상태 (켜짐 여부) 기억 =====
   //  - true  : 해당 가전이 "켜져 있음"
@@ -155,23 +155,23 @@ class Esp32Api {
   }
 
   /// 🟡 Ramadan Mode – 세 가전 모두 동일
-  /// LCD: "Ramadan Mode Run", LED: magenta
+  /// LCD: "Ramadan Mode Run", LED: cyan
   static Future<void> showRamadanModeAll() async {
     await Future.wait([
       _setLcdAndLed(
         washerBaseUrl,
         text: 'Ramadan Mode Run',
-        color: 'magenta',
+        color: 'orange',
       ),
       _setLcdAndLed(
         fridgeBaseUrl,
         text: 'Ramadan Mode Run',
-        color: 'magenta',
+        color: 'orange',
       ),
       _setLcdAndLed(
         acBaseUrl,
         text: 'Ramadan Mode Run',
-        color: 'magenta',
+        color: 'orange',
       ),
     ]);
   }

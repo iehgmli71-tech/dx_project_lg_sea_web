@@ -810,17 +810,17 @@ class BottomNav extends StatelessWidget {
         children: [
           _buildItem(
             icon: Icons.home_outlined,
-            label: "home",
+            label: "Home",
             tabId: 'home',
           ),
           _buildItem(
             icon: Icons.bolt_outlined,
-            label: "power",
+            label: "Power",
             tabId: 'power',
           ),
           _buildItem(
             icon: Icons.info_outline,
-            label: "status",
+            label: "Status",
             tabId: 'status',
           ),
           _buildItem(

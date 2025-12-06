@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 서버 주소 설정 (안드로이드 에뮬레이터 전용 주소)
     // 실제 폰이라면 컴퓨터 IP(예: 192.168.x.x)를 써야 한다.
-    final url = Uri.parse('http://10.0.2.2:8082/api/login');
+    final url = Uri.parse('http://49.50.137.47:8082/login');
 
     try {
       print("서버로 요그인 요청 보냄 : $id");

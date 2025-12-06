@@ -97,7 +97,7 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
   // 백엔드 API 호출
   Future<void> _fetchDashboardData() async {
     final userId = widget.userId; // 생성자에서 받은 ID 사용
-    final url = Uri.parse('http://10.0.2.2:8082/api/home/$userId');
+    final url = Uri.parse('http://49.50.137.47:8082/home/$userId');
 
     try {
       final response = await http.get(url);

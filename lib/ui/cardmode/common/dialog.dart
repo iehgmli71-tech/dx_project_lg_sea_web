@@ -197,50 +197,50 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
   // 코스 상세 정보
   final Map<String, _WashCourseDetail> courseDetails = {
     'Standard': _WashCourseDetail(
-      wash: '세탁 3회',
+      wash: 'Wash x3',
       washSub: null,
-      rinse: '헹굼 2회',
+      rinse: 'Rinse x2',
       rinseSub: null,
-      spin: '탈수 2회',
+      spin: 'Spin x2',
       spinSub: null,
       special: null,
     ),
     'Tahara Rinse': _WashCourseDetail(
-      wash: '세탁 1회',
+      wash: 'Wash x1',
       washSub: null,
-      rinse: '헹굼 3회',
+      rinse: 'Rinse x3',
       rinseSub: null,
-      spin: '탈수 1회',
+      spin: 'Spin x1',
       spinSub: null,
       special: null,
     ),
     'Prayerwear': _WashCourseDetail(
-      wash: '세탁 2회 \n(약하게)',
+      wash: 'Wash x2 \n(gentle)',
       washSub: null,
-      rinse: '헹굼 3회',
+      rinse: 'Rinse x3',
       rinseSub: null,
-      spin: '탈수 1회 \n(약하게)',
+      spin: 'Spin x1 \n(gentle)',
       spinSub: null,
-      special: '기도복/얇은 천을 위한 저강도 코스입니다.',
+      special: 'Low-intensity course for prayer clothes and thin garments.',
     ),
     'Steam+': _WashCourseDetail(
-      wash: '세탁 2회',
+      wash: 'Wash x2',
       washSub: null,
-      rinse: '헹굼 2회',
+      rinse: 'Rinse x2',
       rinseSub: null,
-      spin: '탈수 2회',
+      spin: 'Spin x2',
       spinSub: null,
       // 🔥 여기서 피그마의 "특수 기능" 블럭에 들어갈 내용
-      special: '강력 스팀으로 세탁조에 청결함을 유지할 수 있습니다.',
+      special: 'Keeps the drum hygienic with powerful steam.',
     ),
     'Najis Wash': _WashCourseDetail(
-      wash: '세탁 3회 \n(강하게)',
+      wash: 'Wash x3 \n(strong)',
       washSub: null,
-      rinse: '헹굼 4회 \n(강하게)',
+      rinse: 'Rinse x4 \n(strong)',
       rinseSub: null,
-      spin: '탈수 1회  \n(강하게)',
+      spin: 'Spin x1  \n(strong)',
       spinSub: null,
-      special: '불순 오염(Najis)에 대응하는 집중 세탁 코스입니다.',
+      special: 'Intensive course for Najis contamination.',
     ),
   };
 
@@ -334,7 +334,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('"$courseName" 코스를 시작했습니다.'),
+          content: Text('"$courseName" course started.'),
         ),
       );
     }
@@ -383,8 +383,8 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                     const SizedBox(height: 2),
                     Text(
                       isOn
-                          ? '전원 켜짐 · 원격 제어 사용 가능'
-                          : '전원 꺼짐 · 코스 시작 시 자동으로 켜집니다',
+                          ? 'Power ON · Remote control available'
+                          : 'Power OFF · Will turn on automatically when a course starts',
                       style: TextStyle(
                         fontSize: 12,
                         color: isOn ? Colors.green.shade700 : Colors.grey,
@@ -419,7 +419,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                 await _saveSelectedCourse(); // 코스도 같이 저장/삭제
               },
               icon: const Icon(Icons.power_settings_new),
-              label: Text(isOn ? '꺼짐' : '켜짐'),
+              label: Text(isOn ? 'Turn Off' : 'Turn On'),
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                 isOn ? Colors.green : Colors.grey.shade200,
@@ -458,7 +458,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                         ),
                         SizedBox(width: 8),
                         Text(
-                          '세탁코스 원격제어',
+                          'Remote wash course control',
                           style: TextStyle(
                             color: Colors.black87,
                             fontWeight: FontWeight.w500,
@@ -560,7 +560,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                             ),
                             const SizedBox(height: 10),
                             const Text(
-                              '세탁 코스 시작',
+                              'Start wash course',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -569,7 +569,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${pendingCourse ?? ''} 코스를 시작할까요?',
+                              'Start the "$pendingCourse" course?',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF4B5563),
@@ -595,7 +595,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                                       const Color(0xFFF3F4F6),
                                     ),
                                     child: const Text(
-                                      '취소',
+                                      'Cancel',
                                       style: TextStyle(
                                         color: Color(0xFF4B5563),
                                       ),
@@ -617,7 +617,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                                       elevation: 3,
                                     ),
                                     child: const Text(
-                                      '시작',
+                                      'Start',
                                       style: TextStyle(color: Colors.white),
                                     ),
                                   ),
@@ -651,7 +651,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                         const Icon(Icons.water_drop, color: Colors.green, size: 20),
                         const SizedBox(width: 8),
                         const Text(
-                          "에너지·물 사용 최적화",
+                          "Energy & Water Optimization",
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black87,
@@ -670,12 +670,12 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [
                               Text(
-                                "절약 모드",
+                                "Eco mode",
                                 style: TextStyle(fontSize: 13, color: Colors.grey),
                               ),
                               SizedBox(height: 4),
                               Text(
-                                "약 30% 에너지 절감",
+                                "Save about 30% energy",
                                 style: TextStyle(fontSize: 12, color: Colors.green),
                               ),
                             ],
@@ -695,7 +695,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text("활성화"),
+                          child: const Text("Activate"),
                         )
                       ],
                     ),
@@ -726,7 +726,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                             Icon(Icons.water_drop, color: Colors.green, size: 24),
                             SizedBox(width: 8),
                             Text(
-                              "자동 절약 안내",
+                              "Auto-saving suggestion",
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -738,8 +738,8 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                         const SizedBox(height: 12),
 
                         const Text(
-                          "저녁 시간대에는 물, 전기 사용량 증가가 예상됩니다.\n"
-                              "세탁을 22:00 이후로 자동 예약할까요?",
+                          "Evening usage of water and electricity is expected to increase."
+                              "Would you like to schedule the wash after 22:00 automatically?",
                           style: TextStyle(fontSize: 13, color: Colors.black87),
                         ),
                         const SizedBox(height: 16),
@@ -755,7 +755,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text("22:00 이후 자동 예약",
+                              const Text("Auto-schedule after 22:00",
                                   style: TextStyle(fontSize: 13)),
 
                               // 토글 스위치
@@ -842,7 +842,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          '특수 기능',
+                          'Special feature',
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFF6B7280),
@@ -869,7 +869,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
               Expanded(
                 child: _buildDetailBox(
                   icon: '🌊',
-                  label: '세탁',
+                  label: 'Wash',
                   main: detail.wash,
                   sub: detail.washSub,
                 ),
@@ -878,7 +878,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
               Expanded(
                 child: _buildDetailBox(
                   icon: '💧',
-                  label: '헹굼',
+                  label: 'Rinse',
                   main: detail.rinse,
                   sub: detail.rinseSub,
                 ),
@@ -887,7 +887,7 @@ class _WashingMachineSheetState extends State<WashingMachineSheet> {
               Expanded(
                 child: _buildDetailBox(
                   icon: '🔄',
-                  label: '탈수',
+                  label: 'Spin',
                   main: detail.spin,
                   sub: detail.spinSub,
                 ),
@@ -990,7 +990,7 @@ class DryerSheet extends StatefulWidget {
 
 class _DryerSheetState extends State<DryerSheet> {
   late bool isOn;
-  String dryLevel = '중간';
+  String dryLevel = 'Medium';
   bool ecoMode = false;
   int timerMinutes = 45;
 
@@ -1020,7 +1020,7 @@ class _DryerSheetState extends State<DryerSheet> {
     }
   }
 
-  final List<String> dryLevels = ['약', '중간', '강'];
+  final List<String> dryLevels = ['Low', 'Medium', 'High'];
 
 
   @override
@@ -1053,7 +1053,7 @@ class _DryerSheetState extends State<DryerSheet> {
                               fontSize: 18, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 4),
                       Text(
-                        isOn ? '건조 중' : '꺼짐',
+                        isOn ? 'Drying' : 'Off',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[600],
@@ -1091,7 +1091,7 @@ class _DryerSheetState extends State<DryerSheet> {
                     borderRadius: BorderRadius.circular(18)),
               ),
               icon: const Icon(Icons.power_settings_new),
-              label: Text(isOn ? '꺼짐' : '켜짐'),
+              label: Text(isOn ? 'Turn Off' : 'Turn On'),
             ),
           ),
           const SizedBox(height: 16),
@@ -1111,7 +1111,7 @@ class _DryerSheetState extends State<DryerSheet> {
                     children: const [
                       Icon(Icons.speed, color: Colors.green, size: 18),
                       SizedBox(width: 6),
-                      Text('건조정도'),
+                      Text('Dryness level'),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -1167,9 +1167,9 @@ class _DryerSheetState extends State<DryerSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text('절약건조'),
+                        Text('Eco drying'),
                         SizedBox(height: 2),
-                        Text('에너지 효율 모드',
+                        Text('Energy saving mode',
                             style: TextStyle(
                                 fontSize: 11, color: Colors.green)),
                       ],
@@ -1200,9 +1200,9 @@ class _DryerSheetState extends State<DryerSheet> {
                       const Icon(Icons.timer_outlined,
                           color: Colors.green, size: 18),
                       const SizedBox(width: 6),
-                      const Text('타이머'),
+                      const Text('Timer'),
                       const Spacer(),
-                      Text('$timerMinutes분',
+                      Text('$timerMinutes min',
                           style: const TextStyle(
                               color: Colors.green, fontSize: 13)),
                     ],
@@ -1252,10 +1252,10 @@ class _DryerSheetState extends State<DryerSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
-                      Text('15분',
+                      Text('15 min',
                           style:
                           TextStyle(fontSize: 11, color: Colors.grey)),
-                      Text('120분',
+                      Text('120 min',
                           style:
                           TextStyle(fontSize: 11, color: Colors.grey)),
                     ],
@@ -1401,8 +1401,8 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                     const SizedBox(height: 2),
                     Text(
                       isOn
-                          ? '전원 켜짐 · 온도 관리 가능'
-                          : '전원 꺼짐 · 설정만 미리 변경됩니다',
+                          ? 'Power ON · Remote control available'
+                          : 'Power OFF · Will turn on automatically when a course starts',
                       style: TextStyle(
                         fontSize: 12,
                         color: isOn ? Colors.blue.shade700 : Colors.grey,
@@ -1439,7 +1439,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                 ),
               ),
               icon: const Icon(Icons.power_settings_new),
-              label: Text(isOn ? '켜짐' : '꺼짐'),
+              label: Text(isOn ? 'Turn Off' : 'Turn On'),
             ),
           ),
 
@@ -1482,7 +1482,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
               Icon(Icons.thermostat, size: 20, color: Colors.blue),
               SizedBox(width: 8),
               Text(
-                '온도관리',
+                'Temperature control',
                 style: TextStyle(
                   color: Colors.black87,
                   fontWeight: FontWeight.w500,
@@ -1494,7 +1494,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
 
           // 냉동실 온도
           _buildTempControlRow(
-            title: '냉동실',
+            title: 'Freezer',
             temp: freezerTemp,
             tempColor: Colors.blue.shade600,
             min: -23,
@@ -1510,7 +1510,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
 
           // 냉장실 온도
           _buildTempControlRow(
-            title: '냉장실',
+            title: 'Fridge',
             temp: fridgeDisplayTemp,
             tempColor: Colors.cyan.shade600,
             min: fridgeMin,
@@ -1727,7 +1727,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                   ),
                 ),
                 child: Text(
-                  showHalalZone ? '닫기' : '설정하기',
+                  showHalalZone ? 'Close' : 'Set up',
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
@@ -1747,7 +1747,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
               child: Column(
                 children: [
                   const Text(
-                    '냉장고 보관 구역 안내',
+                    'Fridge storage guide',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1878,7 +1878,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                             ),
                             SizedBox(width: 6),
                             Text(
-                              '상단 세 칸 - Halal Zone',
+                              'Upper 3 shelve - Halal Zone',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF111827),
@@ -1891,7 +1891,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                         Padding(
                           padding: EdgeInsets.only(left: 16),
                           child: Text(
-                            '✓ 할랄 인증 식품 전용 보관',
+                            '✓ For halal-certified foods only',
                             style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF15803D),
@@ -1902,7 +1902,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                         Padding(
                           padding: EdgeInsets.only(left: 16),
                           child: Text(
-                            '할랄 인증을 받은 식품만 보관하여 교차 오염을 방지합니다',
+                            'Store only halal-certified foods here to avoid cross-contamination.',
                             style: TextStyle(
                               fontSize: 11,
                               color: Color(0xFF4B5563),
@@ -1941,7 +1941,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                             ),
                             SizedBox(width: 6),
                             Text(
-                              '하단 한 칸 - General Zone',
+                              'Bottom shelf - General Zone',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Color(0xFF111827),
@@ -1954,7 +1954,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                         Padding(
                           padding: EdgeInsets.only(left: 16),
                           child: Text(
-                            '✓ 일반 식품 보관 구역',
+                            '✓ General food storage area',
                             style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFFB91C1C),
@@ -1965,7 +1965,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                         Padding(
                           padding: EdgeInsets.only(left: 16),
                           child: Text(
-                            '일반 식품 및 음료수 보관 공간',
+                            'Space for regular food and drinks',
                             style: TextStyle(
                               fontSize: 11,
                               color: Color(0xFF4B5563),
@@ -2035,7 +2035,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
                           Text(
-                            '냉각 강화',
+                            'Cooling boost',
                             style: TextStyle(
                               fontSize: 14,
                               color: Color(0xFF111827),
@@ -2044,7 +2044,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                           ),
                           SizedBox(height: 2),
                           Text(
-                            '냉각 강화 사용',
+                            'Use cooling boost',
                             style: TextStyle(
                               fontSize: 11,
                               color: Color(0xFF9CA3AF),
@@ -2087,7 +2087,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                       ),
                       const SizedBox(width: 6),
                       const Text(
-                        'Iftar Boost Mode 활성화',
+                        'Iftar Boost Mode activated',
                         style: TextStyle(
                           fontSize: 11,
                           color: Color(0xFF15803D),
@@ -2098,8 +2098,8 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                   const SizedBox(height: 4),
                   Text(
                     iftarBoostMode
-                        ? '현재 냉장실 온도: ${fridgeDisplayTemp}°C (기본 ${fridgeBaseTemp}°C → Boost 적용)'
-                        : '현재 냉장실 온도: ${fridgeBaseTemp}°C',
+                        ? 'Current fridge temperature: ${fridgeDisplayTemp}°C (base ${fridgeBaseTemp}°C → Boost applied)'
+                        : 'Current fridge temperature: ${fridgeBaseTemp}°C',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xFF4B5563),
@@ -2132,7 +2132,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                   size: 20, color: Color(0xFF16A34A)),
               SizedBox(width: 8),
               Text(
-                '알림 설정',
+                'Alert settings',
                 style: TextStyle(
                   color: Colors.black87,
                   fontWeight: FontWeight.w500,
@@ -2146,7 +2146,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
               // 도어 열림 알림
               _buildAlertRow(
                 icon: Icons.door_front_door_outlined,
-                label: '도어 열림 알림',
+                label: 'Door open alert',
                 value: doorAlert,
                 onChanged: (val) {
                   setState(() => doorAlert = val);
@@ -2156,7 +2156,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
               // 온도 이상 알림
               _buildAlertRow(
                 icon: Icons.thermostat_outlined,
-                label: '온도 이상 알림',
+                label: 'Abnormal temperature alert',
                 value: tempAlert,
                 onChanged: (val) {
                   setState(() => tempAlert = val);
@@ -2221,7 +2221,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
               Icon(Icons.shield, size: 20, color: Color(0xFFDC2626)),
               SizedBox(width: 8),
               Text(
-                '전력 보호',
+                'Power protection',
                 style: TextStyle(
                   color: Colors.black87,
                   fontWeight: FontWeight.w500,
@@ -2258,7 +2258,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
                           Text(
-                            '전력 불안정 → 냉장고 보호모드 자동 전환',
+                            'Unstable power → Auto switch to fridge protection mode',
                             style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF111827),
@@ -2267,7 +2267,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            '전압 불안정 감지 시 자동으로 압축기를 보호하고 안전 모드로 전환합니다',
+                            'When voltage instability is detected, the compressor is protected and the fridge switches to safe mode automatically.',
                             style: TextStyle(
                               fontSize: 11,
                               color: Color(0xFF4B5563),
@@ -2275,7 +2275,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            '• 압축기 과부하 방지\n• 전자부품 손상 예방\n• 안정화 후 자동 복구',
+                            '• Prevents compressor overload\n• Protects electronic components\n• Automatically recovers after stabilization',
                             style: TextStyle(
                               fontSize: 11,
                               color: Color(0xFF4B5563),
@@ -2309,7 +2309,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                       ),
                       const SizedBox(width: 6),
                       const Text(
-                        '보호 모드 활성화',
+                        'Protection mode active',
                         style: TextStyle(
                           fontSize: 11,
                           color: Color(0xFFB91C1C),
@@ -2319,7 +2319,7 @@ class _RefrigeratorSheetState extends State<RefrigeratorSheet> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    '현재 전력 상태: 정상 (220V, 60Hz)',
+                    'Current power status: Normal (220V, 60Hz)',
                     style: TextStyle(
                       fontSize: 11,
                       color: Color(0xFF4B5563),
@@ -2399,7 +2399,7 @@ class AirConditionerSheet extends StatefulWidget {
 class _AirConditionerSheetState extends State<AirConditionerSheet> {
   late bool isOn;
   int temperature = 24;
-  String mode = '자동';
+  String mode = 'Auto';
   bool showMoreModes = false;
   String? selectedSpecialMode;
 
@@ -2433,44 +2433,49 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
     'Prayer Mode': {
       'temp': '25°C',
       'humidity': '55–60%',
-      'fan': 'Low/Quiet',
-      'timer': '20분 복귀',
-      'purpose': '조용·간접풍·쾌적',
+      'fan': 'Low / Quiet',
+      'timer': 'Return in 20 min',
+      'purpose': 'Quiet · Indirect airflow · Comfort',
     },
+
     'Ramadan (Sahur)': {
       'temp': '26°C',
       'humidity': '60%',
       'fan': 'Low',
-      'timer': '1시간',
-      'purpose': '새벽 절전·조용',
+      'timer': '1-hour duration',
+      'purpose': 'Dawn energy-saving · Quiet operation',
     },
+
     'Ramadan (Iftar)': {
       'temp': '24°C',
       'humidity': '55%',
-      'fan': 'Mid→Low',
-      'timer': '60–90분',
-      'purpose': '빠른 냉방',
+      'fan': 'Mid → Low',
+      'timer': '60–90 min',
+      'purpose': 'Fast cooling',
     },
+
     'Wudhu Mode': {
       'temp': '26–27°C',
       'humidity': '50%',
       'fan': 'Mid',
-      'timer': '15–20분',
-      'purpose': '제습 우선',
+      'timer': '15–20 min',
+      'purpose': 'Dehumidification priority',
     },
+
     'Hybrid': {
       'temp': '26°C',
       'humidity': '55%',
       'fan': 'Auto',
-      'timer': '지속',
-      'purpose': '습도 기반 절전',
+      'timer': 'Continuous',
+      'purpose': 'Humidity-based energy saving',
     },
+
     'Eco Night': {
-      'temp': '24→26°C',
+      'temp': '24 → 26°C',
       'humidity': '55–60%',
-      'fan': 'Mid→Low',
-      'timer': '6시간',
-      'purpose': '수면·절전',
+      'fan': 'Mid → Low',
+      'timer': '6 hours',
+      'purpose': 'Sleep mode · Energy saving',
     },
   };
 
@@ -2488,7 +2493,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
       } else {
         // 🔼 새 모드 선택
         selectedSpecialMode = name;
-        mode = '자동';
+        mode = 'Auto';
 
         final tempText = specialModes[name]!['temp']!;
         final match = RegExp(r'(\d+)').firstMatch(tempText);
@@ -2551,7 +2556,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        isOn ? '켜짐' : '꺼짐',
+                        isOn ? 'On' : 'Off',
                         style: const TextStyle(
                           fontSize: 13,
                           color: Colors.grey,
@@ -2588,7 +2593,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                 ),
               ),
               icon: const Icon(Icons.power_settings_new),
-              label: Text(isOn ? '켜짐' : '꺼짐'),
+              label: Text(isOn ? 'Turn Off' : 'Turn On'),
             ),
           ),
           const SizedBox(height: 16),
@@ -2606,7 +2611,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                 children: [
                   Row(
                     children: [
-                      const Text('온도'),
+                      const Text('Temperature'),
                       const Spacer(),
                       Text(
                         '$temperature°C',
@@ -2664,7 +2669,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('모드'),
+                  const Text('Mode'),
                   const SizedBox(height: 10),
                   GridView.count(
                     physics: const NeverScrollableScrollPhysics(),
@@ -2673,7 +2678,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
                     childAspectRatio: 2.0,
-                    children: ['자동', '냉방', '송풍'].map((m) {
+                    children: ['Auto', 'Cool', 'Fan'].map((m) {
                       final selected =
                           (mode == m) && selectedSpecialMode == null;
                       return TextButton(
@@ -2719,7 +2724,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          showMoreModes ? '숨기기' : '더보기',
+                          showMoreModes ? 'Hide' : 'More',
                           style: const TextStyle(fontSize: 13),
                         ),
                         const SizedBox(width: 4),
@@ -2753,7 +2758,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                     const Row(
                       children: [
                         SizedBox(width: 6),
-                        Text('종교 및 테마모드'),
+                        Text('Religious & themed modes'),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -2815,7 +2820,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                     const Row(
                       children: [
                         SizedBox(width: 6),
-                        Text('절전 및 기능 모드'),
+                        Text('Eco & function modes'),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -2901,7 +2906,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: const Text(
-                            '활성',
+                            'Active',
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.white,
@@ -2923,7 +2928,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                       children: [
                         _modeInfoCard(
                           icon: '🌡️',
-                          label: '온도',
+                          label: 'Temperature',
                           value: specialModes[selectedSpecialMode]!['temp']!,
                         ),
                         _modeInfoCard(
@@ -2932,7 +2937,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                             size: 12,
                             color: Colors.green,
                           ),
-                          label: '습도',
+                          label: 'Humidity',
                           value: specialModes[selectedSpecialMode]!['humidity']!,
                         ),
                         _modeInfoCard(
@@ -2941,7 +2946,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                             size: 12,
                             color: Colors.green,
                           ),
-                          label: '풍량',
+                          label: 'Fan Speed',
                           value: specialModes[selectedSpecialMode]!['fan']!,
                         ),
                         _modeInfoCard(
@@ -2950,7 +2955,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                             size: 12,
                             color: Colors.green,
                           ),
-                          label: '타이머',
+                          label: 'Timer',
                           value: specialModes[selectedSpecialMode]!['timer']!,
                         ),
                       ],
@@ -2966,7 +2971,7 @@ class _AirConditionerSheetState extends State<AirConditionerSheet> {
                         ),
                         const SizedBox(width: 4),
                         const Text(
-                          '목적:',
+                          'Purpose:',
                           style: TextStyle(fontSize: 12),
                         ),
                         const SizedBox(width: 4),

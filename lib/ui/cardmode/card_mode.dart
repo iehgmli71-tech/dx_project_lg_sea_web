@@ -224,7 +224,7 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '라마단 절전모드 활성화',
+                          'Ramadan Eco Mode Activated',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -232,7 +232,7 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
                         ),
                         SizedBox(height: 2),
                         Text(
-                          '모든 가전이 에너지 절약 모드로 작동 중입니다',
+                          'All appliances are running in energy-saving mode',
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 11,
@@ -450,7 +450,7 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$displayName님', // 예) team3님
+                      'Dear $displayName', // 예) team3님
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -523,8 +523,8 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
                 const SizedBox(width: 8),
                 Text(
                   _isDataLoading
-                  ? '날씨 정보를 불러오는 중'
-                  : '$regionName, $tempStr°C · 습도 $humiStr%',
+                  ? 'Loading weather information...'
+                  : '$regionName, $tempStr°C · Humidity $humiStr%',
                   style: const TextStyle(fontSize: 13, color: Colors.black54),
                 )
               ],
@@ -677,11 +677,11 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
           const SizedBox(height: 30),
           OutlinedButton.icon(
             onPressed: () {
-              _showSimpleDialog('가전 추가', '여기에 가전 추가 로직을 구현하면 됩니다.');
+              _showSimpleDialog('Add Appliance', 'You can implement the logic to add a new appliance here.');
             },
             icon: const Icon(Icons.add, size: 20),
             label: const Text(
-              '가전 추가하기',
+              'Add Appliance',
               style: TextStyle(fontSize: 16),
             ),
             style: OutlinedButton.styleFrom(
@@ -810,22 +810,22 @@ class BottomNav extends StatelessWidget {
         children: [
           _buildItem(
             icon: Icons.home_outlined,
-            label: "홈",
+            label: "home",
             tabId: 'home',
           ),
           _buildItem(
             icon: Icons.bolt_outlined,
-            label: "전력",
+            label: "power",
             tabId: 'power',
           ),
           _buildItem(
             icon: Icons.info_outline,
-            label: "상태 확인",
+            label: "status",
             tabId: 'status',
           ),
           _buildItem(
             icon: Icons.person_outline,
-            label: "마이페이지",
+            label: "My Page",
             tabId: 'my',
           ),
         ],

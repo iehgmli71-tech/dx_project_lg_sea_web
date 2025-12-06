@@ -53,15 +53,21 @@ class _PowerManagementState extends State<PowerManagement> {
   ][m];
 
   void _startUsageTimer() {
-    // 혹시 이전에 타이머가 돌아가고 있었다면 정리
     _timer?.cancel();
 
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-      setState(() {
-        PowerUsageManager.instance.tick();  // ✅ 30초마다 today/month kWh 누적
-      });
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      // 1) 로컬 사용량 누적
+      PowerUsageManager.instance.tick();
+
+      // 2) UI 갱신 (선불 탭 today/month 바로 반영)
+      if (!mounted) return;
+      setState(() {});
+
+      // 3) 서버에 오늘 사용량 저장 + 후불 대시보드 갱신
+      await _syncUsageToServer();
     });
   }
+
 
   @override
   void initState() {
@@ -71,6 +77,7 @@ class _PowerManagementState extends State<PowerManagement> {
     PowerUsageManager.instance.init(widget.userId).then((_) {
       if (mounted) {
         setState(() {});  // 복구된 today/month kWh를 화면에 반영
+        _syncUsageToServer(); // 초기 상태도 서버와 동기화
       }
     });
 
@@ -217,6 +224,47 @@ class _PowerManagementState extends State<PowerManagement> {
       setState(() {
         _isSavingPrepaid = false;
       });
+    }
+  }
+
+  Future<void> _syncUsageToServer() async {
+    final userId = widget.userId;
+    final mgr = PowerUsageManager.instance;
+    final todayKwh = mgr.todayKwh;
+
+    final now = DateTime.now();
+
+    // YYYY-MM-DD 형식으로 날짜 문자열 만들기
+    final dateStr =
+        '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+
+    final uri = Uri.parse(
+      'http://10.0.2.2:8082/api/users/$userId/usage/today',
+    );
+
+    final body = json.encode({
+      'date': dateStr,
+      'usageKwh': todayKwh,  // "오늘 하루 누적 사용량"을 보냄
+    });
+
+    try {
+      final resp = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      // 200 / 204면 성공으로 보고 후불 대시보드 다시 불러오기
+      if (resp.statusCode == 200 || resp.statusCode == 204) {
+        await _loadPostpaidDashboard();
+      } else {
+        debugPrint(
+            'usage sync failed: ${resp.statusCode} ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('usage sync error: $e');
     }
   }
 
@@ -470,7 +518,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                           ),
                                           Expanded(
                                             child: _TokenInfoItem(
-                                              label: 'Estimated Duration',
+                                              label: 'Days',
                                               value: '$expectedDays Day(s)',
                                             ),
                                           ),

@@ -99,7 +99,7 @@ class _PowerManagementState extends State<PowerManagement> {
   Future<void> _loadPrepaidDashboard() async {
     final userId = widget.userId;
     final uri = Uri.parse(
-      'http://10.0.2.2:8082/api/users/$userId/prepaid-dashboard',
+      'http://49.50.137.47:8082/api/users/$userId/prepaid-dashboard',
     );
 
     try {
@@ -133,7 +133,7 @@ class _PowerManagementState extends State<PowerManagement> {
 
     // 안드로이드 에뮬레이터면 10.0.2.2, iOS 시뮬레이터면 localhost
     final uri = Uri.parse(
-      'http://10.0.2.2:8082/api/users/$userId/postpaid-dashboard',
+      'http://49.50.137.47:8082/api/users/$userId/postpaid-dashboard',
     );
 
     try {
@@ -173,7 +173,7 @@ class _PowerManagementState extends State<PowerManagement> {
 
     final userId = widget.userId; // TODO: 나중에 로그인 연동 후 실제 userId로 교체
     final uri = Uri.parse(
-      'http://10.0.2.2:8082/api/users/$userId/prepaid-topup',
+      'http://49.50.137.47:8082/api/users/$userId/prepaid-topup',
     );
 
     final body = json.encode({
@@ -241,7 +241,7 @@ class _PowerManagementState extends State<PowerManagement> {
         '${now.day.toString().padLeft(2, '0')}';
 
     final uri = Uri.parse(
-      'http://10.0.2.2:8082/api/users/$userId/usage/today',
+      'http://49.50.137.47:8082/api/users/$userId/usage/today',
     );
 
     final body = json.encode({

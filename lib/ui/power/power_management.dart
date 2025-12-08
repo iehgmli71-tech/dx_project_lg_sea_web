@@ -12,10 +12,12 @@ import 'package:dx_projecet_lg_sea/services/power_usage_manager.dart';
 
 class PowerManagement extends StatefulWidget {
   final int userId;
+  final bool isLoggedIn;
 
   const PowerManagement({
     Key? key,
     required this.userId,
+    required this.isLoggedIn,
   }) : super(key: key);
 
   @override
@@ -27,6 +29,7 @@ enum PaymentType { prepaid, postpaid }
 class _PowerManagementState extends State<PowerManagement> {
   PaymentType paymentType = PaymentType.prepaid;
 
+  bool get _loggedIn => widget.isLoggedIn && widget.userId != 0;
   bool _isSavingPrepaid = false; // 선불 저장 중인지 표시용
 
   bool showAddTokenPopup = false;
@@ -73,21 +76,24 @@ class _PowerManagementState extends State<PowerManagement> {
   void initState() {
     super.initState();
 
-    // 🔹 유저별(로그인한 userId 기준) 사용량 복구
-    PowerUsageManager.instance.init(widget.userId).then((_) {
-      if (mounted) {
-        setState(() {});  // 복구된 today/month kWh를 화면에 반영
-        _syncUsageToServer(); // 초기 상태도 서버와 동기화
-      }
-    });
+    if (_loggedIn) {
+      // 🔹 유저별(로그인한 userId 기준) 사용량 복구
+      PowerUsageManager.instance.init(widget.userId).then((_) {
+        if (mounted) {
+          setState(() {});  // 복구된 today/month kWh를 화면에 반영
+          _syncUsageToServer(); // 초기 상태도 서버와 동기화
+        }
+      });
 
-    // 🔹 선불/후불 대시보드 가져오기
-    _loadPrepaidDashboard();
-    _loadPostpaidDashboard();
+      // 🔹 선불/후불 대시보드 가져오기
+      _loadPrepaidDashboard();
+      _loadPostpaidDashboard();
 
-    // 🔹 30초마다 tick() + setState (이 안에서 Timer.periodic 돌도록 구현)
-    _startUsageTimer();
+      // 🔹 30초마다 tick() + setState
+      _startUsageTimer();
+    }
   }
+
 
   @override
   void dispose() {
@@ -146,9 +152,9 @@ class _PowerManagementState extends State<PowerManagement> {
         });
       } else {
         setState(() {
-          _postpaidError = 'API 오류: ${resp.statusCode}';
+          _postpaidError = '데이터를 불러오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
         });
-        print('API error: ${resp.statusCode} ${resp.body}');
+        print('postpaid-dashboard error: ${resp.statusCode} ${resp.body}');
       }
     } catch (e) {
       setState(() {
@@ -164,6 +170,15 @@ class _PowerManagementState extends State<PowerManagement> {
 
 
   Future<void> _handleCalculateAddToken() async {
+
+    // 🔹 로그인 안 되어 있으면 서버 호출 안 하고 안내만
+    if (!_loggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인 후 이용 가능한 기능입니다.')),
+      );
+      return;
+    }
+
     // 기본 검증: 브랜드 선택 + 토큰이 0보다 커야 함
     if (addTokenMeterBrand.isEmpty || addTotalTokens <= 0) return;
 
@@ -210,9 +225,14 @@ class _PowerManagementState extends State<PowerManagement> {
           addTokenHistory.clear();
         });
       } else {
-        // API 에러
+        String message = '토큰 저장 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+
+        if (resp.statusCode == 401 || resp.statusCode == 403) {
+          message = '로그인 후 이용 가능한 기능입니다.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('토큰 저장 실패: ${resp.statusCode}')),
+          SnackBar(content: Text(message)),
         );
       }
     } catch (e) {
@@ -228,6 +248,7 @@ class _PowerManagementState extends State<PowerManagement> {
   }
 
   Future<void> _syncUsageToServer() async {
+    if (!_loggedIn) return;
     final userId = widget.userId;
     final mgr = PowerUsageManager.instance;
     final todayKwh = mgr.todayKwh;
@@ -291,8 +312,30 @@ class _PowerManagementState extends State<PowerManagement> {
     });
   }
 
+
+
   @override
   Widget build(BuildContext context) {
+    if (!_loggedIn) {
+      // 🔹 로그인 안돼 있으면 전체 화면을 잠그기
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.lock_outline, size: 40),
+              SizedBox(height: 12),
+              Text(
+                '로그인 후 이용 가능한 서비스입니다.',
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // 전력 사용량 매니저에서 값 읽기
     final mgr   = PowerUsageManager.instance;
     final today = mgr.todayKwh;               // 오늘 사용량 (kWh)

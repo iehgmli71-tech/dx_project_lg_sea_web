@@ -62,7 +62,7 @@ class _CardModeState extends State<CardMode> with WidgetsBindingObserver{
     // 화면이 켜지자마자 데이터 가져옴
     _fetchDashboardData();
 
-    _powerPage = PowerManagement(userId: widget.userId);
+    _powerPage = PowerManagement(userId: widget.userId, isLoggedIn: widget.isLoggedIn,);
     // 🔋 전력 사용량 매니저에 디바이스 등록
     for (final d in devices) {
       PowerUsageManager.instance.registerDevice(d);

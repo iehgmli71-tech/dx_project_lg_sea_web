@@ -338,8 +338,14 @@ class _PowerManagementState extends State<PowerManagement> {
 
     // 전력 사용량 매니저에서 값 읽기
     final mgr   = PowerUsageManager.instance;
-    final today = mgr.todayKwh;               // 오늘 사용량 (kWh)
-    final month = mgr.monthKwh;               // 이번달 사용량 (kWh)
+
+    final double localToday = mgr.todayKwh;
+    final double localMonth = mgr.monthKwh;
+
+    final double today =
+        _postpaidDashboard?.todayUsageKwh ?? localToday;
+    final double month =
+        _postpaidDashboard?.monthUsageKwh ?? localMonth;
 
     // 이번 달 사용량을 선불 모드의 "사용 토큰"으로 사용
     final double usedThisMonth = month;
@@ -799,9 +805,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     child: _SmallStatCard(
                                       icon: Icons.trending_down,
                                       label: "Today's Usage",
-                                      value: _postpaidDashboard == null
-                                          ? today.toStringAsFixed(2)
-                                          : _postpaidDashboard!.todayUsageKwh.toStringAsFixed(2),
+                                      value: today.toStringAsFixed(2),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -809,9 +813,7 @@ class _PowerManagementState extends State<PowerManagement> {
                                     child: _SmallStatCard(
                                       icon: Icons.bolt,
                                       label: "This Month's Usage",
-                                      value: _postpaidDashboard == null
-                                          ? month.toStringAsFixed(2)
-                                          : _postpaidDashboard!.monthUsageKwh.toStringAsFixed(2),
+                                      value: month.toStringAsFixed(2),
                                     ),
                                   ),
                                 ],

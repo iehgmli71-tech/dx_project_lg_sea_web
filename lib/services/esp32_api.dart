@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 
 class Esp32Api {
   // ===== 1) 각 보드 IP =====
-  static const String washerBaseUrl = 'http://172.20.10.3';  // 세탁기
+  static const String washerBaseUrl = 'http://10.155.2.169';  // 세탁기
   static const String fridgeBaseUrl = 'http://10.155.2.164';  // 냉장고
   static const String acBaseUrl     = 'http://10.155.2.6';  // 에어컨
 
